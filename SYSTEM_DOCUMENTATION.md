@@ -56,7 +56,7 @@ graph TD
 Create `.env.local` in `frontend-client/`:
 ```env
 NEXT_PUBLIC_LIFF_ID=your_liff_id
-NEXT_PUBLIC_GAS_URL=your_gas_web_app_url
+NEXT_PUBLIC_GAS_URL=https://script.google.com/macros/s/AKfycbzoPUDR-U9fBO1OMt5IGJonsRR8PS6BBcgq6H0imKtC-6ZFMESw_nUJKYKmwb87XHos/exec
 ```
 
 ---
@@ -90,7 +90,10 @@ docker compose up -d --build
 ## 📝 Maintenance & Troubleshooting
 
 - **Check Logs**: `docker compose logs -f`
-- **Update Application**: `git pull`, then `docker compose up -d --build`
+- **Subsequent Deployments (การอัปเดตระบบ)**:
+  1. **Local**: `git add .`, `git commit`, `git push origin main`
+  2. **VPS**: `cd ~/Line-Nebles`, `git pull origin main`
+  3. **VPS**: `docker compose up -d --build`
 - **Data Access**: All submissions are instantly available in the designated Google Sheet.
 - **LIFF Testing**: Test using the `https://liff.line.me/LIFF_ID` URL to ensure profile injection works.
 

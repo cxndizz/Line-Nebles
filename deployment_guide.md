@@ -63,11 +63,12 @@ services:
 
 1.  **Clone โปรเจกต์** ลงบน VPS
 2.  **ตั้งค่า Environment**: สร้างไฟล์ `.env.local` ใน `frontend-client/` และใส่ `GAS_URL` กับ `LIFF_ID`
-3.  **รันด้วย Docker (ตามที่เราปรับไว้)**:
-    ```bash
-    docker compose up -d --build
-    ```
-    *ตัวแอปจะรันอยู่ที่พอร์ต 5995 ภายในเครื่อง VPS*
+3. - **Check Logs**: `docker compose logs -f`
+- **Subsequent Deployments (การอัปเดตระบบ)**:
+  1. **Local**: `git add .`, `git commit`, `git push origin main`
+  2. **VPS**: `cd ~/Line-Nebles`, `git pull origin main`
+  3. **VPS**: `docker compose up -d --build`
+- **Data Access**: All submissions are instantly available in the designated Google Sheet.
 
 ---
 
