@@ -1,0 +1,16 @@
+services:
+  # Frontend Client (Next.js)
+  frontend:
+    build:
+      context: ./frontend-client
+      dockerfile: Dockerfile
+    container_name: nebles-frontend
+    ports:
+      - "5995:5995"
+    environment:
+      - NODE_ENV=production
+    restart: always
+
+networks:
+  nebles-network:
+    driver: bridge
