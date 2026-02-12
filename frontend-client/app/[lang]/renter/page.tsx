@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ArrowRight, Check, ArrowLeft, ArrowDown, Sparkles } from 'lucide-react';
+import liff from '@line/liff';
 import { api } from '../../lib/api';
 import { cn } from '../../components/ui/Button';
 import { useLanguage } from '../../context/LanguageContext';
@@ -27,9 +28,34 @@ export default function RenterPage() {
         fullName: '',
         phoneNumber: '',
         lineId: '',
+        lineUserId: '',
+        lineDisplayName: '',
     });
 
     const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const initLiff = async () => {
+            try {
+                const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '';
+                if (!liffId) return;
+
+                await liff.init({ liffId });
+                if (liff.isLoggedIn()) {
+                    const profile = await liff.getProfile();
+                    setFormData(prev => ({
+                        ...prev,
+                        lineUserId: profile.userId,
+                        lineDisplayName: profile.displayName,
+                        fullName: prev.fullName || profile.displayName,
+                    }));
+                }
+            } catch (error) {
+                console.error('LIFF Initialization failed', error);
+            }
+        };
+        initLiff();
+    }, []);
 
     useEffect(() => {
         if (step !== 'WELCOME' && step !== 'SUCCESS' && step !== 'MOVE_IN' && step !== 'UNIT_TYPE' && step !== 'CONTRACT') {
@@ -97,14 +123,29 @@ export default function RenterPage() {
     const handleSubmit = async () => {
         setIsLoading(true);
         try {
-            await api.post('/api/form/renter', {
-                ...formData,
-                hasPet: formData.hasPet === 'true',
+            const gasUrl = process.env.NEXT_PUBLIC_GAS_URL || '';
+            if (!gasUrl) {
+                alert('ยังไม่ได้ตั้งค่า Google Apps Script URL');
+                setIsLoading(false);
+                return;
+            }
+
+            await fetch(gasUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ...formData,
+                    hasPet: formData.hasPet === 'true',
+                }),
             });
+
             setStep('SUCCESS');
         } catch (error) {
             console.error('Submission failed', error);
-            alert('Error. Please try again.');
+            alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่');
         } finally {
             setIsLoading(false);
         }
