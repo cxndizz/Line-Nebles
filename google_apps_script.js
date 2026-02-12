@@ -13,28 +13,23 @@ function doPost(e) {
     try {
         const data = JSON.parse(e.postData.contents);
         const ss = SpreadsheetApp.getActiveSpreadsheet();
-        let sheet = ss.getSheets()[0]; // Default to first sheet
-
-        // Check if it's a Renter or Owner submission to potentially use different sheets
-        // For simplicity, we'll use the same sheet but adjust the columns
 
         const timestamp = new Date();
         const lineName = data.lineDisplayName || "";
         const lineId = data.lineUserId || "";
 
-        // Determine form type and prepare row
-        let rowData = [];
-
         if (data.locationPreference) {
-            // Renter Form
-            if (sheet.getLastRow() === 0) {
-                sheet.appendRow(["Timestamp", "LINE Name", "LINE ID", "Type", "Name", "Phone", "LINE ID (Manual)", "Location", "Budget", "Room Type", "Pet?", "Move-in Date", "Period"]);
+            // --- RENTERS ---
+            let sheet = ss.getSheetByName("Renter_Data");
+            if (!sheet) {
+                sheet = ss.insertSheet("Renter_Data");
+                sheet.appendRow(["Timestamp", "LINE Name", "LINE ID", "Name", "Phone", "LINE ID (Manual)", "Location", "Budget", "Room Type", "Pet Info", "Move-in Date", "Period"]);
             }
-            rowData = [
+
+            sheet.appendRow([
                 timestamp,
                 lineName,
                 lineId,
-                "Renter",
                 data.fullName || "",
                 data.phoneNumber || "",
                 data.lineId || "",
@@ -44,17 +39,19 @@ function doPost(e) {
                 data.hasPet ? ("Yes: " + (data.petType || "")) : "No",
                 data.moveInDate || "",
                 data.contractPeriod || ""
-            ];
+            ]);
         } else {
-            // Owner Form
-            if (sheet.getLastRow() === 0) {
-                sheet.appendRow(["Timestamp", "LINE Name", "LINE ID", "Type", "Name", "Phone", "LINE ID (Manual)", "Project Name", "Room Details", "Price", "Period", "Conditions"]);
+            // --- OWNERS ---
+            let sheet = ss.getSheetByName("Owner_Data");
+            if (!sheet) {
+                sheet = ss.insertSheet("Owner_Data");
+                sheet.appendRow(["Timestamp", "LINE Name", "LINE ID", "Owner Name", "Phone", "LINE ID (Manual)", "Project Name", "Room Details", "Price", "Period", "Conditions"]);
             }
-            rowData = [
+
+            sheet.appendRow([
                 timestamp,
                 lineName,
                 lineId,
-                "Owner",
                 data.ownerName || "",
                 data.ownerPhone || "",
                 data.ownerLineId || "",
@@ -63,10 +60,8 @@ function doPost(e) {
                 data.rentalPrice || "",
                 data.rentalPeriod || "",
                 data.specialConditions || ""
-            ];
+            ]);
         }
-
-        sheet.appendRow(rowData);
 
         return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
             .setMimeType(ContentService.MimeType.JSON);
