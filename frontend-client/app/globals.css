@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+:root {
+  /* Enterprise Light Luxury Theme */
+  --background: #f8fafc;
+  /* Slate-50 (Soft White) */
+  --foreground: #0f172a;
+  /* Slate-900 (Deep Navy) */
+
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  /* Slate-200 */
+
+  --primary: #1e293b;
+  /* Slate-800 */
+  --primary-foreground: #ffffff;
+
+  --accent: #d4af37;
+  /* Gold */
+  --accent-foreground: #ffffff;
+
+  --muted: #f1f5f9;
+  /* Slate-100 */
+  --muted-foreground: #64748b;
+  /* Slate-500 */
+
+  --border: #e2e8f0;
+  --input: #ffffff;
+  --ring: #d4af37;
+
+  /* Gradients */
+  --gradient-gold: linear-gradient(135deg, #d4af37 0%, #cfb53b 100%);
+  --gradient-navy: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-gold: 0 4px 14px 0 rgba(212, 175, 55, 0.25);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --shadow-gold: var(--shadow-gold);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Custom Utilities */
+@layer utilities {
+  .text-gold-gradient {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .bg-gold-gradient {
+    background: var(--gradient-gold);
+  }
+
+  .text-navy-gradient {
+    background: var(--gradient-navy);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .input-enterprise {
+    @apply w-full bg-white border border-slate-200 text-slate-900 px-4 py-3 rounded-md focus:outline-none focus:ring-1 focus:ring-[var(--accent)] focus:border-[var(--accent)] transition-all duration-300 placeholder:text-slate-400 shadow-sm;
+  }
+
+  .btn-enterprise {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-[var(--primary)] text-white shadow hover:bg-[var(--primary)]/90 h-10 px-8 py-2;
+  }
+
+  .card-enterprise {
+    @apply bg-white border border-slate-100 shadow-xl rounded-xl;
+  }
+}
