@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ArrowRight, Check, ArrowLeft, ArrowDown, Sparkles } from 'lucide-react';
 import liff from '@line/liff';
-import { api } from '../../lib/api';
 import { cn } from '../../components/ui/Button';
 import { useLanguage } from '../../context/LanguageContext';
 import { LuxuryCalendar } from '../../components/wizard/LuxuryCalendar';
