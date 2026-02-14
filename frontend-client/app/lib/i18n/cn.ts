@@ -42,8 +42,32 @@ export const cn = {
         },
         location: {
             title: "期望位置",
-            description: "首选区域，BTS/MRT 站点或特定公寓。",
+            description: "选择首选区域或其他位置。",
             placeholder: "例如 Thong Lo, Ari...",
+            other: "其他",
+            otherPlaceholder: "请注明...",
+            zones: {
+                sukhumvit: "素坤逸",
+                silom_sathorn: "是隆 / 沙吞",
+                siam_ploenchit: "暹罗 / 奇隆 / 奔集",
+                riverside: "湄南河畔",
+                ari_phayathai: "阿里 / 帕亚泰",
+                ratchada_rama9: "拉差达 / 拉玛九",
+                chatuchak_ladprao: "乍都乍 / 拉普劳",
+                thonburi: "吞武里",
+                bangna: "班纳 / 乌东素",
+                nonthaburi: "暖武里 / 拉达那提贝",
+                rangsit_pathum: "兰实 / 巴吞他尼",
+                ramkhamhaeng: "兰甘亨 / 邦卡皮",
+                pinklao: "平克劳 / 塔林灿",
+                latkrabang: "拉卡邦 / 素万那普",
+                samutprakan: "北榄府 / 席娜卡琳",
+                kaset_nawamin: "农业大学 / 纳哇敏 / 拉民特拉",
+                bangsue_taopoon: "邦苏 / 涛普 / 翁萨旺",
+                chaengwatthana: "程瓦塔纳 / 北格雷",
+                rama2: "拉玛二 / 邦昆天",
+                phetkasem: "碧凯 / 邦凯",
+            }
         },
         pets: {
             title: "宠物",
@@ -61,9 +85,12 @@ export const cn = {
         },
         details: {
             title: "偏好设置",
-            unitType: "户型",
+            unitType: "单位类型",
             unitTypePlaceholder: "例如 1 卧室，顶层公寓...",
             contract: "合同期限",
+            month: "个月",
+            months: "个月",
+            year_plus: "1 年以上",
             moveIn: "入住日期",
             oneYear: "1 年 (标准)",
             sixMonths: "6 个月",
@@ -71,10 +98,24 @@ export const cn = {
         },
         contact: {
             title: "联系方式",
-            description: "我们应该将精选房源发送到哪里？",
-            name: "全名",
-            phone: "电话号码",
-            lineId: "Line ID",
+            description: "通过 LINE 或电话联系我们",
+            name: "您的姓名",
+            phone: "电话号码 / WhatsApp",
+            lineId: "LINE ID",
+            email: "电子邮件 (可选)",
+            almostDone: "快完成了！",
+            trust: {
+                encrypted: "数据加密安全",
+                encryptedDesc: "仅用于匹配房源",
+                response: "快速响应",
+                responseDesc: "工作时间内 2 小时内回复"
+            },
+            confirm: {
+                title: "确认信息",
+                description: "提交前请核对您的信息",
+                submit: "确认并提交",
+                edit: "编辑"
+            }
         },
         success: {
             received: "请求已收到",

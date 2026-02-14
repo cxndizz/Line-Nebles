@@ -1,6 +1,7 @@
 "use client";
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Home, Building, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
@@ -24,9 +25,16 @@ export default function LandingPage() {
           <span className="inline-block px-4 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-xs font-semibold tracking-wider uppercase mb-5 shadow-sm">
             {t("landing.badge")}
           </span>
-          <h1 className="text-6xl md:text-8xl font-serif font-bold text-[var(--foreground)] tracking-tight">
-            Nebles
-          </h1>
+          <div className="flex justify-center mb-8">
+            <Image
+              src="/images/logo.png"
+              alt="Nebles Logo"
+              width={200}
+              height={80}
+              className="h-24 w-auto object-contain"
+              priority
+            />
+          </div>
         </motion.div>
 
         <motion.p

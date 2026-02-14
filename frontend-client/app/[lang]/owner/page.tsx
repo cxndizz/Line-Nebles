@@ -33,8 +33,8 @@ export default function OwnerPage() {
             try {
                 // REPLACE THIS WITH YOUR ACTUAL LIFF ID
                 const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '';
-                if (!liffId) {
-                    console.warn('LIFF ID is missing. Please set NEXT_PUBLIC_LIFF_ID in .env.local');
+                if (!liffId || liffId === 'your_liff_id_here') {
+                    console.warn('LIFF ID is missing or invalid. Skipping initialization.');
                     return;
                 }
 

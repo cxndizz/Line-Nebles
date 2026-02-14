@@ -11,7 +11,7 @@ interface LanguageContextProps {
     setLanguage: (lang: Language) => void;
     currency: Currency;
     setCurrency: (curr: Currency) => void;
-    t: (path: string) => any;
+    t: (path: string, fallback?: string) => any;
     currencySymbol: string;
 }
 
@@ -44,15 +44,15 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem("currency", currency);
     }, [currency]);
 
-    // Translation function: t("landing.title") -> value
-    const t = (path: string) => {
+    // Translation function: t("landing.title", "Default Title") -> value
+    const t = (path: string, fallback?: string) => {
         const keys = path.split(".");
         let current: any = translations[language];
 
         for (const key of keys) {
-            if (current[key] === undefined) {
+            if (current === undefined || current[key] === undefined) {
                 console.warn(`Translation missing for key: ${path} in language: ${language}`);
-                return path;
+                return fallback || path;
             }
             current = current[key];
         }
