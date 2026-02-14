@@ -47,26 +47,12 @@ export const th = {
             other: "อื่นๆ",
             otherPlaceholder: "โปรดระบุ...",
             zones: {
-                sukhumvit: "สุขุมวิท",
-                silom_sathorn: "สีลม / สาทร",
-                siam_ploenchit: "สยาม / ชิดลม / เพลินจิต",
-                riverside: "ริมแม่น้ำเจ้าพระยา",
-                ari_phayathai: "อารีย์ / พญาไท",
-                ratchada_rama9: "รัชดา / พระราม 9",
-                chatuchak_ladprao: "จตุจักร / ลาดพร้าว",
-                thonburi: "ฝั่งธนบุรี",
-                bangna: "บางนา / อุดมสุข",
-                nonthaburi: "นนทบุรี / รัตนาธิเบศร์",
-                rangsit_pathum: "รังสิต / ปทุมธานี",
-                ramkhamhaeng: "รามคำแหง / บางกะปิ",
-                pinklao: "ปิ่นเกล้า / ตลิ่งชัน",
-                latkrabang: "ลาดกระบัง / สุวรรณภูมิ",
-                samutprakan: "สมุทรปราการ / ศรีนครินทร์",
-                kaset_nawamin: "เกษตร-นวมินทร์ / รามอินทรา",
-                bangsue_taopoon: "บางซื่อ / เตาปูน / วงศ์สว่าง",
-                chaengwatthana: "แจ้งวัฒนะ / ปากเกร็ด",
-                rama2: "พระราม 2 / บางขุนเทียน",
-                phetkasem: "เพชรเกษม / บางแค",
+                thonglo_ekkamai: "ทองหล่อ - เอกมัย",
+                phromphong_asoke: "พร้อมพงษ์ - อโศก",
+                siam_phloenchit: "สยาม - เพลินจิต",
+                silom_sathorn: "สีลม - สาทร",
+                ari_phayathai: "อารีย์ - พญาไท",
+                mrt_rama9: "MRT พระราม 9"
             }
         },
         pets: {
@@ -130,40 +116,72 @@ export const th = {
             action: "ลงทะเบียนฝากเช่า"
         },
         project: {
-            title: "โครงการของคุณ?",
-            description: "ชื่อคอนโด และทำเลที่ตั้ง",
-            placeholder: "เช่น Ashton Asoke, Life Ladprao"
+            title: "โครงการและทำเล",
+            description: "คอนโดของคุณอยู่ที่ไหน?",
+            nameLabel: "ชื่อโครงการ",
+            placeholder: "เช่น Noble Ploenchit",
+            zoneLabel: "โซน (เลือก 1 ข้อ)"
+        },
+        unitType: {
+            title: "รูปแบบห้อง",
+            description: "ห้องของคุณเป็นแบบไหน?",
+            options: {
+                studio: "สตูดิโอ",
+                oneBed: "1 ห้องนอน",
+                twoBed: "2 ห้องนอน",
+                penthouse: "เพนท์เฮาส์ / อื่นๆ"
+            }
         },
         details: {
             title: "รายละเอียดห้อง",
-            description: "ขนาด, ชั้น, รูปแบบห้อง",
-            label: "รายละเอียด (ตัวอย่าง: 1 Bed 35ตรม. ชั้น 12 วิวเมือง)",
-            special: "เงื่อนไขพิเศษ (เช่น รับต่างชาติ, เลี้ยงสัตว์ได้)",
-            specialPlaceholder: "ระบุเงื่อนไข..."
+            description: "ขนาด, สถานะห้อง, และจุดเด่น",
+            sizeLabel: "ขนาด (ตร.ม.)",
+            floorLabel: "ชั้น",
+            statusLabel: "สถานะ",
+            status: {
+                available: "ว่าง",
+                unavailable: "ไม่ว่าง"
+            },
+            highlightsLabel: "รายละเอียด / จุดเด่น",
+            highlightsPlaceholder: "เช่น วิวสวย, เฟอร์นิเจอร์ครบ, เพิ่งรีโนเวท..."
         },
         price: {
-            title: "ราคาและสัญญา?",
-            description: "ราคาที่ต้องการปล่อยเช่า (บาท/เดือน)",
-            pricePlaceholder: "ราคาต่อเดือน",
-            contractLabel: "ระยะสัญญาที่ต้องการ",
-            oneYearPlus: "1 ปี ขึ้นไป",
-            sixMonthsPlus: "6 เดือน ขึ้นไป",
-            shortLong: "รับทั้งสั้นและยาว"
+            title: "ราคาและเงื่อนไข",
+            description: "ค่าเช่าและนโยบายสัตว์เลี้ยง",
+            priceLabel: "ค่าเช่า (บาท/เดือน)",
+            contractLabel: "สัญญาขั้นต่ำ",
+            contractSubLabel: "เลือกได้มากกว่า 1 ข้อ",
+            terms: {
+                short: "ระยะสั้น",
+                shortSub: "1-5 เดือน",
+                middle: "ระยะกลาง",
+                middleSub: "6-11 เดือน",
+                long: "ระยะยาว",
+                longSub: "1 ปีขึ้นไป"
+            },
+            selectAll: "เลือกทั้งหมด",
+            petTitle: "นโยบายสัตว์เลี้ยง",
+            pets: {
+                allowed: "เลี้ยงสัตว์ได้",
+                notAllowed: "ไม่อนุญาต",
+                placeholder: "ระบุประเภทสัตว์เลี้ยง..."
+            }
+        },
+        photos: {
+            title: "รูปถ่ายห้อง",
+            description: "อัปโหลดรูปภาพสูงสุด 5 รูป"
         },
         contact: {
-            title: "ข้อมูลเจ้าของห้อง",
-            description: "เพื่อให้เราติดต่อกลับเพื่อยืนยันข้อมูล",
-            nameLabel: "ชื่อ-นามสกุล หรือ ชื่อเล่น",
-            namePlaceholder: "ชื่อของคุณ",
+            title: "ข้อมูลการติดต่อ",
+            description: "ช่องทางเพื่อให้เราติดต่อกลับ",
+            nameLabel: "ชื่อของคุณ",
             phoneLabel: "เบอร์โทรศัพท์",
-            phonePlaceholder: "08x-xxx-xxxx",
-            lineLabel: "Line ID",
-            linePlaceholder: "ไอดีไลน์",
-            submit: "ยืนยันข้อมูลห้อง"
+            lineLabel: "LINE ID",
+            submit: "ส่งข้อมูลฝากเช่า"
         },
         success: {
-            title: "ได้รับข้อมูลแล้ว!",
-            description: "ขอบคุณที่วางใจให้เราดูแล \nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันรายละเอียดและนัดหมายถ่ายรูปห้องครับ",
+            title: "ได้รับข้อมูลเรียบร้อย!",
+            description: "ขอบคุณที่ไว้วางใจ Nebles \nเจ้าหน้าที่จะติดต่อกลับเพื่อยืนยันรายละเอียด \nและนัดหมายถ่ายรูปห้องครับ",
             home: "กลับหน้าหลัก"
         }
     }

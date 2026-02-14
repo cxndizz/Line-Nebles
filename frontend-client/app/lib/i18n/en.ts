@@ -10,7 +10,7 @@ export const en = {
         loading: "Loading...",
     },
     landing: {
-        badge: "Premium Property Management",
+        badge: "Nebles",
         title: "Nebles",
         subtitle: "Experience the art of living.",
         subtitleHighlight: "intelligence & style",
@@ -47,26 +47,12 @@ export const en = {
             other: "Other",
             otherPlaceholder: "Please specify...",
             zones: {
-                sukhumvit: "Sukhumvit",
-                silom_sathorn: "Silom / Sathorn",
-                siam_ploenchit: "Siam / Chidlom / Ploenchit",
-                riverside: "Riverside",
-                ari_phayathai: "Ari / Phaya Thai",
-                ratchada_rama9: "Ratchada / Rama 9",
-                chatuchak_ladprao: "Chatuchak / Ladprao",
-                thonburi: "Thonburi",
-                bangna: "Bang Na / Udom Suk",
-                nonthaburi: "Nonthaburi / Rattanathibet",
-                rangsit_pathum: "Rangsit / Pathum Thani",
-                ramkhamhaeng: "Ramkhamhaeng / Bang Kapi",
-                pinklao: "Pinklao / Taling Chan",
-                latkrabang: "Lat Krabang / Suvarnabhumi",
-                samutprakan: "Samut Prakan / Srinakarin",
-                kaset_nawamin: "Kaset-Nawamin / Ramintra",
-                bangsue_taopoon: "Bang Sue / Tao Poon",
-                chaengwatthana: "Chaeng Watthana / Pak Kret",
-                rama2: "Rama 2 / Bang Khun Thian",
-                phetkasem: "Phetkasem / Bang Khae",
+                thonglo_ekkamai: "Thong Lo - Ekkamai",
+                phromphong_asoke: "Phrom Phong - Asoke",
+                siam_phloenchit: "Siam - Phloen Chit",
+                silom_sathorn: "Silom - Sathorn",
+                ari_phayathai: "Ari - Phaya Thai",
+                mrt_rama9: "MRT Rama 9"
             }
         },
         pets: {
@@ -130,36 +116,68 @@ export const en = {
             action: "Register Property"
         },
         project: {
-            title: "Your Project?",
-            description: "Condo name and location",
-            placeholder: "e.g. Ashton Asoke, Life Ladprao"
+            title: "Property & Location",
+            description: "Where is your property located?",
+            nameLabel: "Project Name",
+            placeholder: "e.g. Noble Ploenchit",
+            zoneLabel: "Zone (Select One)"
+        },
+        unitType: {
+            title: "Unit Type",
+            description: "What kind of room is it?",
+            options: {
+                studio: "Studio",
+                oneBed: "1 Bedroom",
+                twoBed: "2 Bedrooms",
+                penthouse: "Penthouse / Other"
+            }
         },
         details: {
             title: "Room Details",
-            description: "Size, Floor, Unit Type",
-            label: "Details (e.g. 1 Bed 35sqm, 12th Floor, City View)",
-            special: "Special Conditions (e.g. Foreigner Quota, Pet Friendly)",
-            specialPlaceholder: "Specify conditions..."
+            description: "Size, Availability, and Highlights",
+            sizeLabel: "Size (sqm)",
+            floorLabel: "Floor",
+            statusLabel: "Status",
+            status: {
+                available: "Available",
+                unavailable: "Unavailable"
+            },
+            highlightsLabel: "Description / Highlights",
+            highlightsPlaceholder: "Beautiful view, fully furnished, newly renovated..."
         },
         price: {
-            title: "Price & Contract?",
-            description: "Desired rental price (per month)",
-            pricePlaceholder: "Price per month",
-            contractLabel: "Desired Contract Period",
-            oneYearPlus: "1 Year or more",
-            sixMonthsPlus: "6 Months or more",
-            shortLong: "Short & Long term"
+            title: "Price & Policies",
+            description: "Rental Price and Pet Policy",
+            priceLabel: "Rental Price (THB/Month)",
+            contractLabel: "Minimum Contract",
+            contractSubLabel: "Select all that apply",
+            terms: {
+                short: "Short Term",
+                shortSub: "1-5 Months",
+                middle: "Middle Term",
+                middleSub: "6-11 Months",
+                long: "Long Term",
+                longSub: "1 Year+"
+            },
+            selectAll: "Select All",
+            petTitle: "Pet Policy",
+            pets: {
+                allowed: "Pet Friendly",
+                notAllowed: "No Pets",
+                placeholder: "Specify details..."
+            }
+        },
+        photos: {
+            title: "Photos",
+            description: "Upload up to 5 photos of your room"
         },
         contact: {
-            title: "Owner Information",
-            description: "For verification purposes",
-            nameLabel: "Full Name / Nickname",
-            namePlaceholder: "Your Name",
+            title: "Contact Information",
+            description: "How can we contact you?",
+            nameLabel: "Your Name",
             phoneLabel: "Phone Number",
-            phonePlaceholder: "08x-xxx-xxxx",
             lineLabel: "Line ID",
-            linePlaceholder: "Line ID",
-            submit: "Confirm Property Info"
+            submit: "Submit Listing"
         },
         success: {
             title: "Information Received!",

@@ -69,10 +69,10 @@ export default function SettingsWidget() {
         { code: "CNY", symbol: "¥" },
     ];
 
-    const isWizard = pathname?.includes('/renter');
+    const isWizard = pathname?.includes('/renter') || pathname?.includes('/owner');
 
     return (
-        <div className={`fixed right-6 z-[100] transition-all duration-300 ${isWizard ? 'top-6' : 'bottom-6'}`} ref={containerRef}>
+        <div className={`fixed right-6 z-[100] transition-all duration-300 top-6`} ref={containerRef}>
             <motion.button
                 onClick={() => setIsOpen(!isOpen)}
                 whileHover={{ scale: 1.05 }}

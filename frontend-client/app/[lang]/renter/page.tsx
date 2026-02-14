@@ -1,15 +1,18 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { ChevronRight, ArrowRight, Check, ArrowLeft, ArrowDown, Sparkles } from 'lucide-react';
-import { Link } from 'lucide-react';
+import Link from 'next/link';
 import Image from 'next/image';
 import liff from '@line/liff';
 import { cn } from '../../components/ui/Button';
 import { useLanguage } from '../../context/LanguageContext';
 import { LuxuryCalendar } from '../../components/wizard/LuxuryCalendar';
 import { useCurrency } from '../../hooks/useCurrency';
+import { LocationSelection } from '../../components/shared/LocationSelection';
+import { SelectionCard } from '../../components/shared/SelectionCard';
 
 type Step = 'WELCOME' | 'LOCATION' | 'PETS' | 'BUDGET' | 'UNIT_TYPE' | 'CONTRACT' | 'MOVE_IN' | 'CONTACT' | 'SUCCESS';
 
@@ -30,8 +33,7 @@ const normalizeRenterData = (raw: any) => {
         '3_months': 3,
         '6_months': 6,
         '1_year': 12,
-        '1_year_plus': 12, // minimal 12
-        '2_years': 24
+        '1_year_plus': 12 // minimal 12
     };
     const contractMonths = contractMap[raw.contractPeriod] || 12; // default 1 year
 
@@ -74,9 +76,9 @@ const normalizeRenterData = (raw: any) => {
 
 export default function RenterPage() {
     const { t, currencySymbol, language } = useLanguage();
-    const [step, setStep] = useState<Step>('WELCOME');
+    const [step, setStep, isStepInitialized] = useLocalStorage<Step>('renter_form_step_v2', 'WELCOME');
     const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData, isDataInitialized] = useLocalStorage('renter_form_data_v2', {
         locationPreference: '',
         hasPet: 'false',
         petType: '',
@@ -93,7 +95,13 @@ export default function RenterPage() {
         email: '',
     });
 
+
+
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+    // Spam Prevention
+    const formStartTime = useRef(Date.now());
+    const [honeypot, setHoneypot] = useState('');
 
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -196,16 +204,38 @@ export default function RenterPage() {
                 return;
             }
 
+            // Anti-Spam Checks
+            const submissionTime = Date.now() - formStartTime.current;
+            if (honeypot || submissionTime < 3000) {
+                console.warn('Spam detected or too fast submission');
+                // Fake success to fool bot
+                setStep('SUCCESS');
+                setIsLoading(false);
+                return;
+            }
+
+            const payload = {
+                ...normalizeRenterData(formData),
+                metadata: {
+                    source: 'LIFF_RENTER_FORM',
+                    submitted_at: new Date().toISOString()
+                },
+                secret: process.env.NEXT_PUBLIC_API_SECRET || ''
+            };
+
             await fetch(gasUrl, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(normalizeRenterData(formData)),
+                body: JSON.stringify(payload),
             });
 
             setStep('SUCCESS');
+            // Clear local storage after success
+            localStorage.removeItem('renter_form_data_v2');
+            localStorage.removeItem('renter_form_step_v2');
         } catch (error) {
             console.error('Submission failed', error);
             alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่');
@@ -241,14 +271,29 @@ export default function RenterPage() {
         action();
     };
 
+    // Prevent hydration mismatch by checking if initialized
+    if (!isStepInitialized || !isDataInitialized) {
+        return null; // Or a loading spinner
+    }
+
     return (
         <div
-            className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col overflow-hidden font-sans selection:bg-[var(--accent)]/20 touch-manipulation"
+            className="min-h-screen bg-[var(--background)] text-[var(--foreground)] flex flex-col font-sans selection:bg-[var(--accent)]/20 touch-manipulation pb-32 md:pb-0"
             onKeyDown={handleKeyDown}
         >
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 p-6 md:p-10 flex justify-between items-center z-50">
-                <div className="flex items-center space-x-3 text-[var(--primary)] font-serif text-xl tracking-wide">
+            {/* Honeypot Field (Hidden) */}
+            <input
+                type="text"
+                name="website_website"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                autoComplete="off"
+            />
+            <div className="absolute top-0 left-0 right-0 p-6 md:p-10 flex justify-between items-center z-50 pointer-events-none">
+                <Link href={`/${language}`} className="flex items-center space-x-3 text-[var(--primary)] font-serif text-xl tracking-wide pointer-events-auto hover:opacity-80 transition-opacity">
                     <Image
                         src="/images/logo.png"
                         alt="Nebles Logo"
@@ -257,11 +302,11 @@ export default function RenterPage() {
                         className="h-16 w-auto object-contain"
                         priority
                     />
-                </div>
+                </Link>
             </div>
 
             {/* Main Content Area */}
-            <main className="flex-1 flex flex-col justify-center items-center relative max-w-4xl mx-auto w-full px-6 md:px-10 py-12 md:py-20 lg:py-24">
+            <main className="flex-1 flex flex-col justify-center items-center relative max-w-4xl mx-auto w-full px-6 md:px-10 pt-32 pb-32 md:py-20 lg:py-24">
                 <AnimatePresence mode="wait" custom={direction}>
 
                     {/* STEP: WELCOME */}
@@ -309,8 +354,8 @@ export default function RenterPage() {
 
                             <LocationSelection
                                 t={t}
-                                formData={formData}
-                                setFormData={setFormData}
+                                value={formData.locationPreference}
+                                onChange={(val) => setFormData(prev => ({ ...prev, locationPreference: val }))}
                             />
                         </QuestionSlide>
                     )}
@@ -331,14 +376,12 @@ export default function RenterPage() {
                                     }}
                                     icon="🚫"
                                     title={t("renter.pets.noPets")}
-                                    accessKey="N"
                                 />
                                 <SelectionCard
                                     selected={formData.hasPet === 'true'}
                                     onClick={() => setFormData(p => ({ ...p, hasPet: 'true' }))}
                                     icon="🐾"
                                     title={t("renter.pets.petFriendly")}
-                                    accessKey="Y"
                                 />
                             </div>
 
@@ -413,7 +456,6 @@ export default function RenterPage() {
                                         }}
                                         icon={type === 'Studio' ? '🛋️' : type === '1 Bedroom' ? '🛏️' : type === '2 Bedrooms' ? '🏡' : '✨'}
                                         title={type}
-                                        accessKey=""
                                     />
                                 ))}
                             </div>
@@ -449,7 +491,6 @@ export default function RenterPage() {
                                         }}
                                         icon="📅"
                                         title={opt.label}
-                                        accessKey=""
                                     />
                                 ))}
                             </div>
@@ -735,22 +776,7 @@ export default function RenterPage() {
                 </div>
             )}
 
-            {/* Progress Indicator - Top Right (Below Settings) */}
-            {step !== 'WELCOME' && step !== 'SUCCESS' && (
-                <div className="fixed right-6 top-24 z-40 flex items-center justify-end space-x-4 pointer-events-none">
-                    <div className="text-xs md:text-sm font-medium text-slate-400 font-mono">
-                        {currentStepIndex} <span className="mx-1 opacity-50">/</span> {totalSteps}
-                    </div>
-                    <div className="w-24 md:w-32 h-1 bg-slate-100 rounded-full overflow-hidden shadow-sm">
-                        <motion.div
-                            className="h-full bg-[var(--accent)]"
-                            initial={{ width: 0 }}
-                            animate={{ width: `${(currentStepIndex / totalSteps) * 100}%` }}
-                            transition={{ duration: 0.5, ease: "circOut" }}
-                        />
-                    </div>
-                </div>
-            )}
+
         </div>
     );
 }
@@ -985,254 +1011,6 @@ function BudgetSliderPro({ min, max, step = 1000, value, onChange }: { min: numb
         </div>
     );
 }
-function SelectionCard({ selected, onClick, icon, title, accessKey, className }: any) {
-    return (
-        <button
-            onClick={onClick}
-            className={cn(
-                "group relative flex flex-row items-center p-4 md:p-5 transition-all duration-300 text-left w-full rounded-xl overflow-hidden",
-                selected
-                    ? "bg-gradient-to-br from-[var(--accent)]/10 to-[var(--accent)]/5 border border-[var(--accent)]/50 shadow-[0_0_20px_rgba(212,175,55,0.15)]"
-                    : "bg-white border border-slate-100 hover:border-[var(--accent)]/30 hover:shadow-lg hover:shadow-slate-200/50",
-                className
-            )}
-        >
-            {/* Active Indication Background/Glow */}
-            {selected && (
-                <motion.div
-                    layoutId="selected-glow"
-                    className="absolute inset-0 bg-[var(--accent)]/5 z-0"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                />
-            )}
 
-            <div className="relative z-10 flex items-center w-full">
-                <div className={cn(
-                    "text-2xl md:text-4xl mr-4 md:mr-6 transition-transform duration-500",
-                    selected ? "scale-110 rotate-3" : "grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
-                )}>
-                    {icon}
-                </div>
 
-                <div className="flex-1 pr-2">
-                    <div className={cn(
-                        "text-sm md:text-base font-medium leading-snug transition-colors duration-300 font-serif tracking-wide",
-                        selected ? "text-[var(--primary)]" : "text-slate-600 group-hover:text-slate-900"
-                    )}>
-                        {title}
-                    </div>
-                </div>
 
-                {/* Premium Checkbox */}
-                <div className={cn(
-                    "w-6 h-6 md:w-7 md:h-7 flex-shrink-0 rounded-full border flex items-center justify-center transition-all duration-300 shadow-sm",
-                    selected
-                        ? "bg-[var(--accent)] border-[var(--accent)] scale-100"
-                        : "bg-slate-50 border-slate-200 group-hover:border-[var(--accent)]/50 scale-90 opacity-50 group-hover:opacity-100"
-                )}>
-                    <motion.div
-                        initial={false}
-                        animate={{ scale: selected ? 1 : 0 }}
-                        transition={{ duration: 0.2 }}
-                    >
-                        <Check className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" strokeWidth={3} />
-                    </motion.div>
-                </div>
-            </div>
-        </button>
-    )
-}
-
-function LocationSelection({ t, formData, setFormData }: any) {
-    const LOCATION_ZONES = [
-        { id: 'sukhumvit', value: 'Sukhumvit', icon: '🏙️' },
-        { id: 'silom_sathorn', value: 'Silom / Sathorn', icon: '💼' },
-        { id: 'siam_ploenchit', value: 'Siam / Chidlom / Ploenchit', icon: '🛍️' },
-        { id: 'riverside', value: 'Riverside', icon: '🌊' },
-        { id: 'ari_phayathai', value: 'Ari / Phaya Thai', icon: '☕' },
-        { id: 'ratchada_rama9', value: 'Ratchada / Rama 9', icon: '🌃' },
-        { id: 'chatuchak_ladprao', value: 'Chatuchak / Ladprao', icon: '🌳' },
-        { id: 'bangsue_taopoon', value: 'Bang Sue / Tao Poon', icon: '🚇' },
-        { id: 'kaset_nawamin', value: 'Kaset-Nawamin / Ramintra', icon: '🛣️' },
-        { id: 'latkrabang', value: 'Lat Krabang / Suvarnabhumi', icon: '✈️' },
-        { id: 'bangna', value: 'Bang Na / Udom Suk', icon: '🏬' },
-        { id: 'thonburi', value: 'Thonburi', icon: '🏛️' },
-        { id: 'rama2', value: 'Rama 2 / Bang Khun Thian', icon: '🛣️' },
-        { id: 'phetkasem', value: 'Phetkasem / Bang Khae', icon: '🛍️' },
-        { id: 'chaengwatthana', value: 'Chaeng Watthana / Pak Kret', icon: '🏢' },
-        { id: 'nonthaburi', value: 'Nonthaburi / Rattanathibet', icon: '🏡' },
-        { id: 'rangsit_pathum', value: 'Rangsit / Pathum Thani', icon: '🎓' },
-        { id: 'ramkhamhaeng', value: 'Ramkhamhaeng / Bang Kapi', icon: '🏟️' },
-        { id: 'pinklao', value: 'Pinklao / Taling Chan', icon: '🌉' },
-        { id: 'samutprakan', value: 'Samut Prakan / Srinakarin', icon: '🏭' },
-    ];
-
-    // Helper to check if a zone is selected
-    const isSelected = (val: string) => {
-        if (!formData.locationPreference) return false;
-        const currentSelected = formData.locationPreference.split(', ').filter(Boolean);
-        return currentSelected.includes(val);
-    };
-
-    // Helper to toggle selection
-    const toggleZone = (val: string) => {
-        const currentSelected = formData.locationPreference
-            ? formData.locationPreference.split(', ').filter(Boolean)
-            : [];
-
-        let newSelected: string[];
-        if (currentSelected.includes(val)) {
-            newSelected = currentSelected.filter((item: string) => item !== val);
-        } else {
-            newSelected = [...currentSelected, val];
-        }
-
-        // Maintain "Other" text if it exists
-        const otherText = currentSelected.find((item: string) => item.startsWith('Other: '));
-        if (otherText && !newSelected.includes(otherText) && val !== 'OTHER_FLAG') {
-            // If we're just toggling a normal zone, make sure we don't accidentally lose the "Other" text if it was there
-            // But actually, the filter above handles standard zones. 
-            // "Other" logic is handled separately below, but stored in the same string string.
-            // Wait, if "Other: ..." is in currentSelected, and we toggle "Sukhumvit", 
-            // "Other: ..." should remain in newSelected unless we explicitly removed it.
-            // The filter logic above preserves "Other: ..." because val (e.g. "Sukhumvit") != "Other: ..."
-        }
-
-        setFormData((prev: any) => ({ ...prev, locationPreference: newSelected.join(', ') }));
-    };
-
-    // Handle "Other" selection
-    const [isOtherSelected, setIsOtherSelected] = useState(() => {
-        return !!formData.locationPreference?.includes('Other: ');
-    });
-
-    const [otherText, setOtherText] = useState(() => {
-        const match = formData.locationPreference?.match(/Other: (.*)/);
-        return match ? match[1] : '';
-    });
-
-    const toggleOther = () => {
-        const newIsOtherSelected = !isOtherSelected;
-        setIsOtherSelected(newIsOtherSelected);
-
-        let currentSelected = formData.locationPreference
-            ? formData.locationPreference.split(', ').filter(Boolean)
-            : [];
-
-        if (newIsOtherSelected) {
-            // Added "Other", but text is empty initially, so we don't add to string yet or add base pattern?
-            // Let's add "Other: " pattern to mark it as selected, or just manage local state?
-            // Better to manage local state and only update parent string when valid.
-            // But to keep consistency with "isSelected", maybe we don't add to parent string until typed?
-            // OR we add "Other: " placeholder?
-            // Let's keep it simple: "Other: " prefix.
-            // Actually, if I just use local state `isOtherSelected` for the UI, 
-            // and only update `locationPreference` when text changes, that's cleaner?
-            // But if user selects "Other" and types nothing, and submits?
-            // Maybe we just check isOtherSelected and if true, ensure "Other: " + text is in the list.
-        } else {
-            // Removed "Other"
-            setOtherText('');
-            const newSelected = currentSelected.filter((item: string) => !item.startsWith('Other: '));
-            setFormData((prev: any) => ({ ...prev, locationPreference: newSelected.join(', ') }));
-        }
-    };
-
-    const handleOtherTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const text = e.target.value;
-        setOtherText(text);
-
-        let currentSelected = formData.locationPreference
-            ? formData.locationPreference.split(', ').filter((item: string) => !item.startsWith('Other: '))
-            : [];
-
-        if (text.trim()) {
-            currentSelected.push(`Other: ${text}`);
-        } else {
-            // If text is empty, do we remove "Other" selection? 
-            // Maybe keep the selection active but remove the value from string?
-            // But then validation might fail if it relies on string not being empty.
-        }
-
-        setFormData((prev: any) => ({ ...prev, locationPreference: currentSelected.join(', ') }));
-    };
-
-    // Animation variants for container
-    const container = {
-        hidden: { opacity: 0 },
-        show: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.05
-            }
-        }
-    };
-
-    // Animation variants for items
-    const item = {
-        hidden: { opacity: 0, y: 20 },
-        show: { opacity: 1, y: 0 }
-    };
-
-    return (
-        <motion.div
-            className="w-full max-w-5xl pb-24 md:pb-10"
-            variants={container}
-            initial="hidden"
-            animate="show"
-        >
-            {/* Use LayoutGroup to allow smooth transitions when other elements change */}
-            <LayoutGroup>
-                <div className="grid grid-cols-2 gap-3 md:gap-4 mb-6">
-                    {LOCATION_ZONES.map((zone) => (
-                        <motion.div key={zone.id} variants={item} layout>
-                            <SelectionCard
-                                selected={isSelected(zone.value)}
-                                onClick={() => toggleZone(zone.value)}
-                                icon={zone.icon}
-                                title={t(`renter.location.zones.${zone.id}`)}
-                                className="h-full"
-                            />
-                        </motion.div>
-                    ))}
-
-                    {/* Other Option */}
-                    <motion.div variants={item} layout>
-                        <SelectionCard
-                            selected={isOtherSelected}
-                            onClick={toggleOther}
-                            icon="✨"
-                            title={t("renter.location.other")}
-                            className="h-full"
-                        />
-                    </motion.div>
-                </div>
-            </LayoutGroup>
-
-            {/* Other Input Field */}
-            <AnimatePresence>
-                {isOtherSelected && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0, scale: 0.98, y: -10 }}
-                        animate={{ opacity: 1, height: 'auto', scale: 1, y: 0 }}
-                        exit={{ opacity: 0, height: 0, scale: 0.98, y: -10 }}
-                        transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
-                        className="overflow-hidden"
-                    >
-                        <div className="p-1"> {/* Padding for focus ring */}
-                            <input
-                                className="w-full bg-white border-2 border-[var(--accent)]/20 rounded-xl text-lg p-5 text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent)]/10 transition-all duration-300 font-serif shadow-inner"
-                                placeholder={t("renter.location.otherPlaceholder")}
-                                value={otherText}
-                                onChange={handleOtherTextChange}
-                                autoFocus
-                            />
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
-}
