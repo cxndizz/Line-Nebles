@@ -45,8 +45,8 @@ export default function RootLayout({
           <SettingsWidget />
           {children}
         </LanguageProvider>
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ""} />
       </body>
-      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || ""} />
     </html>
   );
 }

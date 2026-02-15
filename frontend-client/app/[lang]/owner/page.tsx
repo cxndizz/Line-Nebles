@@ -61,7 +61,7 @@ export default function OwnerPage() {
     useEffect(() => {
         const initLiff = async () => {
             try {
-                const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '';
+                const liffId = process.env.NEXT_PUBLIC_LIFF_ID_OWNER || '';
                 if (!liffId || liffId === 'your_liff_id_here') {
                     console.warn('LIFF ID is missing. Skipping init.');
                     return;

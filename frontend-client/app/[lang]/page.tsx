@@ -6,9 +6,25 @@ import { Home, Building, ArrowRight, Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
 import { motion } from 'framer-motion';
 import { useLanguage } from '../context/LanguageContext';
+import { useEffect } from 'react';
+import liff from '@line/liff';
 
 export default function LandingPage() {
   const { t, language } = useLanguage();
+
+  useEffect(() => {
+    const initLiff = async () => {
+      try {
+        const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '';
+        if (!liffId || liffId === 'your_liff_id_here') return;
+
+        await liff.init({ liffId });
+      } catch (error) {
+        console.error('LIFF Initialization failed (Landing Page)', error);
+      }
+    };
+    initLiff();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 pt-24 relative overflow-hidden bg-slate-50 selection:bg-[var(--accent)]/30">

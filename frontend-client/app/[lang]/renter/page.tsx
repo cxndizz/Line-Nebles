@@ -118,7 +118,7 @@ export default function RenterPage() {
     useEffect(() => {
         const initLiff = async () => {
             try {
-                const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '';
+                const liffId = process.env.NEXT_PUBLIC_LIFF_ID_RENTER || '';
                 if (!liffId || liffId === 'your_liff_id_here') {
                     console.warn('LIFF ID is missing/invalid. Skipping init.');
                     return;
