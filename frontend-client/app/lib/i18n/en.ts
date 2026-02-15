@@ -52,7 +52,9 @@ export const en = {
                 siam_phloenchit: "Siam - Phloen Chit",
                 silom_sathorn: "Silom - Sathorn",
                 ari_phayathai: "Ari - Phaya Thai",
-                mrt_rama9: "MRT Rama 9"
+                mrt_rama9: "MRT Rama 9",
+                phrakhanong_onnut: "Phra Khanong - On Nut",
+                punnawithi_udomsuk_bangna: "Punnawithi - Udom Suk - Bangna"
             }
         },
         pets: {

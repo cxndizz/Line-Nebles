@@ -52,7 +52,9 @@ export const cn = {
                 siam_phloenchit: "暹罗 - 奔集",
                 silom_sathorn: "是隆 - 沙吞",
                 ari_phayathai: "阿里 - 帕亚泰",
-                mrt_rama9: "MRT 拉玛九"
+                mrt_rama9: "MRT 拉玛九",
+                phrakhanong_onnut: "帕卡隆 - 安努",
+                punnawithi_udomsuk_bangna: "普那威提 - 乌东素 - 邦纳"
             }
         },
         pets: {

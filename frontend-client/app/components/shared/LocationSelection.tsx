@@ -18,6 +18,8 @@ export function LocationSelection({ t, value, onChange, mode = 'multi' }: Locati
         { id: 'silom_sathorn', value: 'silom_sathorn', icon: '💼' },
         { id: 'ari_phayathai', value: 'ari_phayathai', icon: '☕' },
         { id: 'mrt_rama9', value: 'mrt_rama9', icon: '🚇' },
+        { id: 'phrakhanong_onnut', value: 'phrakhanong_onnut', icon: '🏙️' },
+        { id: 'punnawithi_udomsuk_bangna', value: 'punnawithi_udomsuk_bangna', icon: '🏙️' },
     ];
 
     // Helper to check if a zone is selected

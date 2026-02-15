@@ -52,7 +52,9 @@ export const th = {
                 siam_phloenchit: "สยาม - เพลินจิต",
                 silom_sathorn: "สีลม - สาทร",
                 ari_phayathai: "อารีย์ - พญาไท",
-                mrt_rama9: "MRT พระราม 9"
+                mrt_rama9: "MRT พระราม 9",
+                phrakhanong_onnut: "พระโขนง - อ่อนนุช",
+                punnawithi_udomsuk_bangna: "ปุณณวิถี - อุดมสุข - บางนา"
             }
         },
         pets: {
