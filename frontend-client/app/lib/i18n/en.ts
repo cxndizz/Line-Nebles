@@ -10,10 +10,10 @@ export const en = {
         loading: "Loading...",
     },
     landing: {
-        badge: "Nebles",
+        badge: "Elevate your short-term stay... beyond just accommodation.",
         title: "Nebles",
-        subtitle: "Experience the art of living.",
-        subtitleHighlight: "intelligence & style",
+        subtitle: "Discover the 'dream sanctuary' that perfectly matches you through our premium platform.",
+        subtitleHighlight: "Where every moment is the art of living—defined by you.",
         residentCard: {
             title: "For Residents",
             description: "Find your perfect sanctuary. \nTailored options for your lifestyle.",

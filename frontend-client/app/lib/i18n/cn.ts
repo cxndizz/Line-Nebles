@@ -10,10 +10,10 @@ export const cn = {
         loading: "加载中...",
     },
     landing: {
-        badge: "高级物业管理",
+        badge: "升华您的短租体验……不仅是住宿。",
         title: "Nebles",
-        subtitle: "体验生活的艺术。",
-        subtitleHighlight: "智慧与格调",
+        subtitle: "在我们的尊享平台上，寻找完美契合您的“梦想居所”。",
+        subtitleHighlight: "每一刻都是生活的艺术——由您定义。",
         residentCard: {
             title: "我是租客",
             description: "寻找您的完美居所。\n为您量身定制的精选房源。",

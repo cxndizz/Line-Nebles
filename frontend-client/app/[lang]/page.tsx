@@ -67,7 +67,7 @@ export default function LandingPage() {
             className="text-4xl md:text-6xl font-serif text-slate-800 tracking-tight leading-tight"
           >
             {t("landing.subtitle")} <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] via-[var(--accent)] to-[var(--primary)] font-medium italic relative">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--primary)] via-[var(--accent)] to-[var(--primary)] font-medium italic relative py-0.5 leading-snug inline-block">
               {t("landing.subtitleHighlight")}
             </span>
           </motion.h1>
@@ -171,7 +171,7 @@ export default function LandingPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2, duration: 1 }}
-        className="absolute bottom-6 text-slate-400 text-[10px] tracking-widest uppercase opacity-60 font-medium"
+        className="absolute bottom-1 text-slate-400 text-[10px] tracking-widest uppercase opacity-60 font-medium"
       >
         Nebles
       </motion.div>
