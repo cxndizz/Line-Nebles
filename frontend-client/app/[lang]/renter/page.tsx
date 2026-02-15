@@ -3,10 +3,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { ChevronRight, ArrowRight, Check, ArrowLeft, ArrowDown, Sparkles } from 'lucide-react';
+import { ChevronRight, ArrowRight, Check, ArrowLeft, ArrowDown, Sparkles, Phone, Mail, MessageCircle, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import liff from '@line/liff';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/style.css';
 import { cn } from '../../components/ui/Button';
 import { useLanguage } from '../../context/LanguageContext';
 import { LuxuryCalendar } from '../../components/wizard/LuxuryCalendar';
@@ -20,11 +22,13 @@ const normalizeRenterData = (raw: any) => {
     // 1. Budget: Convert to Number
     const budgetMin = parseInt(raw.budgetMin?.replace(/,/g, '') || '0', 10);
     const budgetMax = parseInt(raw.budgetMax?.replace(/,/g, '') || '0', 10);
+    const phoneNumber = raw.phoneNumber || '';
+
 
     // 2. Pet Policy: Boolean & Tags
     const isPetFriendly = raw.hasPet === 'true';
-    const petTags = isPetFriendly && raw.petType
-        ? raw.petType.split(',').map((t: string) => t.trim()).filter((t: string) => t)
+    const petTags = isPetFriendly && Array.isArray(raw.petTypes)
+        ? raw.petTypes
         : [];
 
     // 3. Contract: Convert to Months
@@ -45,14 +49,15 @@ const normalizeRenterData = (raw: any) => {
         ? raw.moveInDate.toISOString().split('T')[0]
         : raw.moveInDate;
 
-    // 6. Contact: Sanitize Phone
-    const phoneNumber = raw.phoneNumber.replace(/[^0-9]/g, '');
+    // 6. Contact: Sanitize Phone (PhoneInput usually returns sanitized string like +66xxxx)
+
 
     return {
         line_user_id: raw.lineUserId || '',
         line_display_name: raw.lineDisplayName || '',
         full_name: raw.fullName || '',
         phone_number: phoneNumber,
+        contact_method: raw.contactMethod || 'PHONE',
         email: raw.email?.toLowerCase().trim() || '',
         preferences: {
             location_zones: raw.locationPreference ? raw.locationPreference.split(',').map((z: string) => z.trim()) : [],
@@ -75,13 +80,13 @@ const normalizeRenterData = (raw: any) => {
 };
 
 export default function RenterPage() {
-    const { t, currencySymbol, language } = useLanguage();
+    const { t, currencySymbol, language, currency } = useLanguage();
     const [step, setStep, isStepInitialized] = useLocalStorage<Step>('renter_form_step_v2', 'WELCOME');
     const [isLoading, setIsLoading] = useState(false);
-    const [formData, setFormData, isDataInitialized] = useLocalStorage('renter_form_data_v2', {
+    const initialFormData = {
         locationPreference: '',
         hasPet: 'false',
-        petType: '',
+        petTypes: [] as string[], // Changed from petType string to array
         budgetMin: '10000',
         budgetMax: '50000',
         roomType: '',
@@ -93,7 +98,12 @@ export default function RenterPage() {
         lineUserId: '',
         lineDisplayName: '',
         email: '',
-    });
+        contactMethod: 'LINE' as 'EMAIL' | 'WHATSAPP' | 'LINE',
+        phoneCountry: 'TH',
+    };
+
+    const [formData, setFormData, isDataInitialized] = useLocalStorage('renter_form_data_v2', initialFormData);
+    const [isSubmitted, setIsSubmitted] = useState(false);
 
 
 
@@ -145,6 +155,12 @@ export default function RenterPage() {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    // Custom handler for PhoneInput
+    const handlePhoneChange = (value: string | undefined) => {
+        setFormData(prev => ({ ...prev, phoneNumber: value || '' }));
+    };
+
+
     const steps: Step[] = ['WELCOME', 'LOCATION', 'PETS', 'BUDGET', 'UNIT_TYPE', 'CONTRACT', 'MOVE_IN', 'CONTACT', 'SUCCESS'];
     const currentStepIndex = steps.indexOf(step);
     const totalSteps = steps.length - 2;
@@ -166,7 +182,7 @@ export default function RenterPage() {
             case 'LOCATION':
                 return !!formData.locationPreference;
             case 'PETS':
-                return formData.hasPet === 'false' || (formData.hasPet === 'true' && !!formData.petType);
+                return formData.hasPet === 'false' || (formData.hasPet === 'true' && formData.petTypes.length > 0);
             case 'BUDGET':
                 return !!formData.budgetMin || !!formData.budgetMax;
             case 'UNIT_TYPE':
@@ -176,7 +192,11 @@ export default function RenterPage() {
             case 'MOVE_IN':
                 return !!formData.moveInDate;
             case 'CONTACT':
-                return !!formData.fullName && !!formData.phoneNumber;
+                if (!formData.fullName) return false;
+                if (formData.contactMethod === 'EMAIL') return !!formData.email && /\S+@\S+\.\S+/.test(formData.email);
+                if (formData.contactMethod === 'WHATSAPP') return !!formData.phoneNumber && formData.phoneNumber.length > 5;
+                if (formData.contactMethod === 'LINE') return !!formData.lineId;
+                return false;
             default:
                 return true;
         }
@@ -195,6 +215,7 @@ export default function RenterPage() {
     };
 
     const handleSubmit = async () => {
+        if (isSubmitted || isLoading) return;
         setIsLoading(true);
         try {
             const gasUrl = process.env.NEXT_PUBLIC_GAS_URL || '';
@@ -233,6 +254,10 @@ export default function RenterPage() {
             });
 
             setStep('SUCCESS');
+            setIsConfirmModalOpen(false); // Close the modal
+            setIsSubmitted(true);
+            setFormData(initialFormData);
+
             // Clear local storage after success
             localStorage.removeItem('renter_form_data_v2');
             localStorage.removeItem('renter_form_step_v2');
@@ -336,7 +361,7 @@ export default function RenterPage() {
                                     <span className="relative z-10 font-bold tracking-wider">{t("common.startSearch")}</span>
                                     <ArrowRight className="relative z-10 ml-3 w-4 h-4 transition-transform group-hover:translate-x-1" />
                                 </button>
-                                <p className="mt-6 text-[10px] text-slate-400 tracking-widest uppercase font-medium">{t("renter.welcome.concierge")}</p>
+                                <p className="mt-12 text-[10px] text-slate-400 tracking-widest uppercase font-medium">{t("renter.welcome.concierge")}</p>
                             </div>
                         </motion.div>
                     )}
@@ -392,14 +417,47 @@ export default function RenterPage() {
                                         animate={{ opacity: 1, height: 'auto' }}
                                         className="w-full max-w-2xl mt-6 overflow-hidden"
                                     >
-                                        <input
-                                            ref={inputRef}
-                                            className="w-full bg-white border border-slate-200 rounded-lg text-xl p-5 text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-colors font-light shadow-sm"
-                                            placeholder={t("renter.pets.placeholder")}
-                                            name="petType"
-                                            value={formData.petType}
-                                            onChange={handleChange}
-                                        />
+                                        <p className="text-sm text-slate-500 mb-3 font-medium uppercase tracking-wider">Select Pet Types</p>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            {['Dog', 'Cat', 'Exotic', 'All'].map((pet) => (
+                                                <button
+                                                    key={pet}
+                                                    onClick={() => {
+                                                        const current = formData.petTypes || [];
+                                                        let newPets: string[] = [];
+
+                                                        if (pet === 'All') {
+                                                            if (current.includes('All')) {
+                                                                newPets = [];
+                                                            } else {
+                                                                newPets = ['Dog', 'Cat', 'Exotic', 'All'];
+                                                            }
+                                                        } else {
+                                                            newPets = [...current];
+                                                            if (newPets.includes(pet)) {
+                                                                newPets = newPets.filter(p => p !== pet);
+                                                                newPets = newPets.filter(p => p !== 'All'); // Deselect All if one is removed
+                                                            } else {
+                                                                newPets.push(pet);
+                                                            }
+                                                        }
+                                                        setFormData(p => ({ ...p, petTypes: newPets }));
+                                                    }}
+                                                    className={`
+                                                        py-3 px-4 rounded-xl text-sm font-bold border transition-all flex items-center justify-center
+                                                        ${formData.petTypes.includes(pet)
+                                                            ? 'bg-[var(--accent)] text-white border-[var(--accent)] shadow-md transform scale-105'
+                                                            : 'bg-white text-slate-500 border-slate-200 hover:border-[var(--accent)]/50 hover:bg-slate-50'}
+                                                    `}
+                                                >
+                                                    {pet === 'Dog' && '🐶 '}
+                                                    {pet === 'Cat' && '🐱 '}
+                                                    {pet === 'Exotic' && '🐰 '}
+                                                    {pet === 'All' && '💖 '}
+                                                    {pet}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -416,9 +474,10 @@ export default function RenterPage() {
 
                             <div className="w-full max-w-xl mx-auto">
                                 <BudgetSliderPro
-                                    min={0}
+                                    min={2500}
                                     max={150000}
                                     step={500}
+                                    currency={currency}
                                     value={[
                                         (formData.budgetMin && !isNaN(Number(formData.budgetMin))) ? Number(formData.budgetMin) : 10000,
                                         (formData.budgetMax && !isNaN(Number(formData.budgetMax))) ? Number(formData.budgetMax) : 50000
@@ -532,14 +591,44 @@ export default function RenterPage() {
                                 {t("renter.contact.title")}
                             </h2>
                             <p className="text-lg text-slate-500 mb-8 font-light tracking-wide">
-                                {t("renter.contact.description")}
+                                {t("renter.contact.description") || "Before we match you with your dream home, how should we contact you?"}
                             </p>
+
+                            {/* Contact Method Selector */}
+                            <div className="w-full max-w-5xl mb-8">
+                                <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-3 block">
+                                    Preferred Contact Method <span className="text-[var(--accent)]">*</span>
+                                </label>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {[
+                                        { id: 'LINE', label: 'Line App', icon: MessageSquare },
+                                        { id: 'WHATSAPP', label: 'WhatsApp', icon: MessageCircle },
+                                        { id: 'EMAIL', label: 'Email', icon: Mail },
+                                    ].map((method) => (
+                                        <button
+                                            key={method.id}
+                                            onClick={() => setFormData(p => ({ ...p, contactMethod: method.id as any }))}
+                                            className={cn(
+                                                "flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-200",
+                                                formData.contactMethod === method.id
+                                                    ? "bg-[var(--primary)] text-white border-[var(--primary)] shadow-md"
+                                                    : "bg-white text-slate-500 border-slate-200 hover:border-[var(--primary)]/50 hover:bg-slate-50"
+                                            )}
+                                        >
+                                            <method.icon className={cn("w-6 h-6 mb-2", formData.contactMethod === method.id ? "text-white" : "text-slate-400")} />
+                                            <span className="text-sm font-medium">{method.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 w-full max-w-5xl">
                                 {/* Form Fields */}
                                 <div className="space-y-5 w-full">
                                     <div className="relative group">
-                                        <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 block">{t("renter.contact.name")}</label>
+                                        <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 block">
+                                            {t("renter.contact.name")} <span className="text-[var(--accent)]">*</span>
+                                        </label>
                                         <input
                                             ref={inputRef}
                                             className="w-full bg-white border border-slate-200 rounded-lg py-3 px-4 text-lg text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all font-light shadow-sm"
@@ -550,34 +639,78 @@ export default function RenterPage() {
                                             autoComplete="name"
                                         />
                                     </div>
+
                                     <div className="relative group">
-                                        <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 block">{t("renter.contact.phone")}</label>
-                                        <input
-                                            type="tel"
-                                            className="w-full bg-white border border-slate-200 rounded-lg py-3 px-4 text-lg text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all font-light shadow-sm"
-                                            placeholder={t("renter.contact.phone")}
-                                            name="phoneNumber"
+                                        <label className={cn(
+                                            "text-[10px] uppercase tracking-widest font-bold mb-1 block transition-colors",
+                                            (formData.contactMethod === 'WHATSAPP') ? "text-[var(--accent)]" : "text-slate-400"
+                                        )}>
+                                            WhatsApp Number {(formData.contactMethod === 'WHATSAPP') && "*"}
+                                        </label>
+                                        <PhoneInput
+                                            country={formData.phoneCountry?.toLowerCase() || 'th'}
                                             value={formData.phoneNumber}
-                                            onChange={handleChange}
-                                            autoComplete="tel"
+                                            onChange={(phone, data: any) => {
+                                                setFormData(prev => ({
+                                                    ...prev,
+                                                    phoneNumber: phone,
+                                                    phoneCountry: data.countryCode?.toUpperCase()
+                                                }));
+                                            }}
+                                            enableSearch={true}
+                                            disableSearchIcon={false}
+                                            searchPlaceholder="Search country..."
+                                            inputClass="!w-full !bg-white !border !border-slate-200 !rounded-lg !py-3 !pl-[48px] !text-lg !text-slate-900 !h-auto focus:!outline-none focus:!ring-2 focus:!ring-[var(--accent)]/50 focus:!border-[var(--accent)] !transition-all !font-light !shadow-sm"
+                                            containerClass="!w-full"
+                                            buttonClass="!border-slate-200 !rounded-l-lg !bg-transparent hover:!bg-slate-50 !border-r-0"
+                                            dropdownClass="!shadow-lg !rounded-lg !border-slate-200 !mt-1 !text-slate-600"
+                                            inputProps={{
+                                                name: 'phoneNumber',
+                                                required: formData.contactMethod === 'WHATSAPP',
+                                                autoFocus: false
+                                            }}
                                         />
                                     </div>
+
                                     <div className="relative group">
-                                        <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 block">{t("renter.contact.lineId")}</label>
+                                        <label className={cn(
+                                            "text-[10px] uppercase tracking-widest font-bold mb-1 block transition-colors",
+                                            formData.contactMethod === 'LINE' ? "text-[var(--accent)]" : "text-slate-400"
+                                        )}>
+                                            {t("renter.contact.lineId")} {formData.contactMethod === 'LINE' && "*"}
+                                        </label>
                                         <input
-                                            className="w-full bg-white border border-slate-200 rounded-lg py-3 px-4 text-lg text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all font-light shadow-sm"
-                                            placeholder={t("renter.contact.lineId") + " (Optional)"}
+                                            className={cn(
+                                                "w-full bg-white border rounded-lg py-3 px-4 text-lg text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all font-light shadow-sm",
+                                                formData.contactMethod === 'LINE' ? "border-[var(--accent)]/50" : "border-slate-200"
+                                            )}
+                                            placeholder={t("renter.contact.lineId")}
                                             name="lineId"
                                             value={formData.lineId}
                                             onChange={handleChange}
                                         />
                                     </div>
+
                                     <div className="relative group">
-                                        <label className="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-1 block">{t("renter.contact.email")}</label>
+                                        <label className={cn(
+                                            "text-[10px] uppercase tracking-widest font-bold mb-1 block transition-colors",
+                                            formData.contactMethod === 'EMAIL' ? "text-[var(--accent)]" : "text-slate-400"
+                                        )}>
+                                            {/* Strip (Optional) from translation if selected to avoid 'Email (Optional) *' */}
+                                            {formData.contactMethod === 'EMAIL'
+                                                ? t("renter.contact.email").replace(/\s*\(.*\)/i, '')
+                                                : t("renter.contact.email")}
+                                            {formData.contactMethod === 'EMAIL' && " *"}
+                                        </label>
                                         <input
                                             type="email"
-                                            className="w-full bg-white border border-slate-200 rounded-lg py-3 px-4 text-lg text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all font-light shadow-sm"
-                                            placeholder={t("renter.contact.email")}
+                                            className={cn(
+                                                "w-full bg-white border rounded-lg py-3 px-4 text-lg text-slate-900 placeholder:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/50 focus:border-[var(--accent)] transition-all font-light shadow-sm",
+                                                formData.contactMethod === 'EMAIL' ? "border-[var(--accent)]/50" : "border-slate-200"
+                                            )}
+                                            placeholder={formData.contactMethod === 'EMAIL'
+                                                ? t("renter.contact.email").replace(/\s*\(.*\)/i, '') // Strips any (Optional) or (Option) part
+                                                : t("renter.contact.email")}
                                             name="email"
                                             value={formData.email}
                                             onChange={handleChange}
@@ -610,6 +743,7 @@ export default function RenterPage() {
                                 </div>
                             </div>
                         </QuestionSlide>
+
                     )}
 
 
@@ -692,6 +826,10 @@ export default function RenterPage() {
                                     <div className="flex justify-between">
                                         <span className="text-slate-400 font-medium">Move-in</span>
                                         <span className="text-slate-800 font-bold text-right">{formData.moveInDate ? new Date(formData.moveInDate).toDateString() : '-'}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-slate-400 font-medium">Contact Preference</span>
+                                        <span className="text-slate-800 font-bold text-right">{formData.contactMethod || 'Any'}</span>
                                     </div>
                                     <div className="h-px bg-slate-200 my-2" />
                                     <div className="flex justify-between">
@@ -878,76 +1016,139 @@ function BudgetSelection({ t, formData, setFormData, navigate, handleNext, langu
     );
 }
 
+
 // Rewriting BudgetSlider to be simpler and robust using standard range inputs styled effectively.
 // This is the most reliable way to get "Pro" feel without janky JS-based drag.
-function BudgetSliderPro({ min, max, step = 1000, value, onChange }: { min: number, max: number, step?: number, value: [number, number], onChange: (val: [number, number]) => void }) {
+// Rewriting BudgetSlider to be simpler and robust using standard range inputs styled effectively.
+// This is the most reliable way to get "Pro" feel without janky JS-based drag.
+function BudgetSliderPro({ min = 2500, max = 150000, step = 1000, value, onChange, currency }: { min?: number, max?: number, step?: number, value: [number, number], onChange: (val: [number, number]) => void, currency?: string }) {
+    return (
+        <BudgetSliderProContent
+            min={min}
+            max={max}
+            step={step}
+            value={value}
+            onChange={onChange}
+            currency={currency}
+        />
+    );
+}
 
-    // Handlers for Range Sliders
-    const handleMinRangeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = Number(e.target.value);
-        const newMin = Math.min(val, value[1] - step);
-        onChange([newMin, value[1]]);
-    };
+function BudgetSliderProContent({ min, max, step, value, onChange, currency = 'THB' }: { min: number, max: number, step: number, value: [number, number], onChange: (val: [number, number]) => void, currency?: string }) {
+    const { convert, convertBack, loading } = useCurrency();
 
-    const handleMaxRangeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = Number(e.target.value);
-        const newMax = Math.max(val, value[0] + step);
-        onChange([value[0], newMax]);
-    };
+    const targetCurrency = currency;
+    const currencySymbol = targetCurrency === 'THB' ? '฿' : (targetCurrency === 'USD' ? '$' : '¥');
 
-    // Handlers for Text Inputs (Direct Entry)
-    const handleMinInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        // Remove non-digits
-        const rawVal = e.target.value.replace(/,/g, '');
-        if (rawVal === '') {
-            // Allow temporary empty state or set to 0? Set to 0 for safety or minimal
-            onChange([0, value[1]]);
-            return;
+    // Display values helpers
+    const toDisplay = (val: number) => targetCurrency === 'THB' ? val : convert(val, targetCurrency as any);
+    const toTHB = (val: number) => targetCurrency === 'THB' ? val : convertBack(val, targetCurrency as any);
+
+    // Secondary currency for the gray text (Approximation)
+    // If viewing in THB, show USD. If viewing in others, show THB.
+    const secondaryCurrency = targetCurrency === 'THB' ? 'USD' : 'THB';
+    const secondarySymbol = secondaryCurrency === 'THB' ? '฿' : '$';
+
+    const getSecondaryDisplay = (val: number) => {
+        if (targetCurrency === 'THB') {
+            // value is in THB, convert to USD
+            return convert(val, 'USD');
+        } else {
+            // value is in Foreign (converted from THB), so val is actually the display value?
+            // Wait, 'val' passed here from props 'value' is ALWAYS in THB (base).
+            // So we just need to show it in THB if we are in Foreign mode.
+            // If secondary is THB, we just return val (which is THB).
+            return val;
         }
-        const val = parseInt(rawVal, 10);
-        if (isNaN(val)) return;
+    }
 
-        // For inputs, we don't clamp immediately against the other handle to allow typing freely, 
-        // but we might clamp on blur. 
-        // However, specifically for this dual slider logic state, we must maintain [min, max] variants.
-        // If user types a Min > Max, typically we push max or clamp min.
-        // Let's just update as is, but ensure [0] <= [1] in the render/logic? 
-        // Or strictly clamp:
-        const safeVal = Math.min(val, value[1]); // Strict clamp for now to avoid crossing
-        onChange([safeVal, value[1]]);
+    // Local state for inputs to allow "empty" state while typing
+    const [minStr, setMinStr] = useState("");
+    const [maxStr, setMaxStr] = useState("");
+
+    // Calculate display values from props
+    const minPropDisplay = toDisplay(value[0]);
+    const maxPropDisplay = toDisplay(value[1]);
+
+    // Sync local state with props when props change
+    useEffect(() => {
+        // Only update if not currently focused? No, we need it to update on currency switch.
+        // But if user is typing, we handled it?
+        // Let's just always sync for now and generic formatting.
+        // Using toLocaleString() might make typing weird if it adds commas while typing.
+        // But we strip them in handler.
+        if (document.activeElement?.getAttribute('name') !== 'minInput') {
+            setMinStr(minPropDisplay.toLocaleString(undefined, { maximumFractionDigits: 0 }));
+        }
+    }, [minPropDisplay]);
+
+    useEffect(() => {
+        if (document.activeElement?.getAttribute('name') !== 'maxInput') {
+            setMaxStr(maxPropDisplay.toLocaleString(undefined, { maximumFractionDigits: 0 }));
+        }
+    }, [maxPropDisplay]);
+
+    const handleMinInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        // Allow empty string
+        const rawVal = e.target.value.replace(/[^0-9.]/g, ''); // Allow decimal for USD? Maybe just Int for simplicity on UI
+        setMinStr(rawVal ? Number(rawVal).toLocaleString(undefined, { maximumFractionDigits: 0 }) : "");
+
+        if (rawVal === '') return;
+
+        const inputVal = parseFloat(rawVal.replace(/,/g, ''));
+        if (isNaN(inputVal)) return;
+
+        const thbVal = toTHB(inputVal);
+        // Constraint: min <= max
+        // We don't force it immediately or it's annoying while typing?
+        // Let's force proper structure on blur or just clamp?
+        // For smoother UX, let's just pass it. The parent/slider might clamp visuals.
+        // But we should ensure logic consistency:
+        // Update ONLY if it makes sense? Or just update.
+        // If min > max, usually we push max or clamp min.
+        // Let's just update standardly:
+
+        // We need to be careful not to exceed global max or go below global min? 
+        // Actually the slider constraints it, but manual input shouldn't?
+
+        onChange([thbVal, value[1]]);
     };
 
     const handleMaxInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const rawVal = e.target.value.replace(/,/g, '');
-        if (rawVal === '') {
-            onChange([value[0], max]); // Reset to max? Or 0?
-            return;
-        }
-        const val = parseInt(rawVal, 10);
-        if (isNaN(val)) return;
+        // Allow empty string
+        const rawVal = e.target.value.replace(/[^0-9.]/g, '');
+        setMaxStr(rawVal ? Number(rawVal).toLocaleString(undefined, { maximumFractionDigits: 0 }) : "");
 
-        const safeVal = Math.max(val, value[0]); // Strict clamp
-        onChange([value[0], Math.min(safeVal, max)]); // Also clamp to absolute max
+        if (rawVal === '') return;
+
+        const inputVal = parseFloat(rawVal.replace(/,/g, ''));
+        if (isNaN(inputVal)) return;
+
+        const thbVal = toTHB(inputVal);
+        onChange([value[0], thbVal]);
     };
-
 
     const minPos = ((value[0] - min) / (max - min)) * 100;
     const maxPos = ((value[1] - min) / (max - min)) * 100;
 
-    const formatValue = (val: number) => val.toLocaleString();
-
     return (
         <div className="w-full max-w-xl mx-auto py-6 px-4">
-            <div className="flex justify-between items-end mb-8 font-serif">
+            <div className="flex justify-between items-end mb-2 font-serif">
                 {/* Min Input */}
                 <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm min-w-[140px] focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--accent)]/10 transition-all">
                     <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block mb-1">Minimum</span>
                     <div className="flex items-center">
-                        <span className="text-slate-400 mr-1 text-lg">฿</span>
+                        <span className="text-slate-400 mr-1 text-lg">{currencySymbol}</span>
                         <input
                             type="text"
-                            value={formatValue(value[0])}
+                            name="minInput"
+                            value={minStr}
                             onChange={handleMinInputChange}
+                            onBlur={() => {
+                                // Re-sync on blur to ensure correct formatting
+                                setMinStr(minPropDisplay.toLocaleString(undefined, { maximumFractionDigits: 0 }));
+                                if (value[0] > value[1]) onChange([value[1], value[1]]); // Simple clamp
+                            }}
                             className="w-full text-xl text-[var(--primary)] font-bold outline-none bg-transparent placeholder-slate-200"
                             placeholder="0"
                         />
@@ -960,15 +1161,16 @@ function BudgetSliderPro({ min, max, step = 1000, value, onChange }: { min: numb
                 <div className="bg-white border border-slate-200 px-4 py-2 rounded-xl shadow-sm min-w-[140px] text-right focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--accent)]/10 transition-all">
                     <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold block mb-1">Maximum</span>
                     <div className="flex items-center justify-end">
-                        <span className="text-slate-400 mr-1 text-lg">฿</span>
+                        <span className="text-slate-400 mr-1 text-lg">{currencySymbol}</span>
                         <input
                             type="text"
-                            value={value[1] >= max ? formatValue(max) + "+" : formatValue(value[1])} // Show + only if via slider? Input might be weird.
-                            // If editing, removing + is important.
-                            // Let's simplify: Just show number. The + logic is good for static, bad for input.
-                            // If value == max, we can show value.
-                            // Actually user asked to increase max to 500k.
+                            name="maxInput"
+                            value={maxStr}
                             onChange={handleMaxInputChange}
+                            onBlur={() => {
+                                setMaxStr(maxPropDisplay.toLocaleString(undefined, { maximumFractionDigits: 0 }));
+                                if (value[1] < value[0]) onChange([value[0], value[0]]); // Simple clamp
+                            }}
                             className="w-full text-xl text-[var(--primary)] font-bold outline-none bg-transparent placeholder-slate-200 text-right"
                             placeholder="Max"
                         />
@@ -976,19 +1178,27 @@ function BudgetSliderPro({ min, max, step = 1000, value, onChange }: { min: numb
                 </div>
             </div>
 
-            <div className="relative h-20 pt-8"> {/* Container for slider */}
+            {/* Gray Approx Text */}
+            <div className="text-center text-xs text-slate-400 font-mono mb-6">
+                ≈ {secondarySymbol}{getSecondaryDisplay(value[0]).toLocaleString(undefined, { maximumFractionDigits: 0 })} - {secondarySymbol}{getSecondaryDisplay(value[1]).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </div>
+
+            <div className="relative h-20 pt-8">
                 <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-slate-100 rounded-full -translate-y-1/2 z-0"></div>
                 <div
                     className="absolute top-1/2 h-1.5 bg-[var(--accent)] rounded-full -translate-y-1/2 z-0 opacity-80"
-                    style={{ left: `${minPos}%`, right: `${100 - maxPos}%` }}
+                    style={{ left: `${Math.max(0, Math.min(100, minPos))}%`, right: `${Math.max(0, Math.min(100, 100 - maxPos))}%` }}
                 ></div>
 
-                {/* Range Inputs */}
                 <input
                     type="range"
                     min={min} max={max} step={step}
                     value={value[0]}
-                    onChange={handleMinRangeChange}
+                    onChange={(e) => {
+                        const val = Number(e.target.value);
+                        const newMin = Math.min(val, value[1] - step);
+                        onChange([newMin, value[1]]);
+                    }}
                     className="absolute top-1/2 left-0 w-full -translate-y-1/2 appearance-none bg-transparent pointer-events-none z-10 
                     [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[var(--accent)] [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110"
                 />
@@ -996,21 +1206,26 @@ function BudgetSliderPro({ min, max, step = 1000, value, onChange }: { min: numb
                     type="range"
                     min={min} max={max} step={step}
                     value={value[1]}
-                    onChange={handleMaxRangeChange}
+                    onChange={(e) => {
+                        const val = Number(e.target.value);
+                        const newMax = Math.max(val, value[0] + step);
+                        onChange([value[0], newMax]);
+                    }}
                     className="absolute top-1/2 left-0 w-full -translate-y-1/2 appearance-none bg-transparent pointer-events-none z-10
                     [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:w-7 [&::-webkit-slider-thumb]:h-7 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[var(--accent)] [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:hover:scale-110"
                 />
             </div>
 
-            {/* Note for interactions */}
             <div className="flex justify-between text-xs text-slate-300 font-medium px-1 mt-[-20px]">
-                <span>฿0</span>
-                <span>฿{(max / 2).toLocaleString()}</span>
-                <span>฿{max.toLocaleString()}+</span>
+                <span>{currencySymbol}{toDisplay(min).toLocaleString()}</span>
+                {/* Approximate mid/max labels */}
+                <span>{currencySymbol}{toDisplay(max / 2).toLocaleString()}</span>
+                <span>{currencySymbol}{toDisplay(max).toLocaleString()}+</span>
             </div>
         </div>
     );
 }
+
 
 
 

@@ -25,6 +25,7 @@ export default function OwnerPage() {
     const [formData, setFormData, isDataInitialized] = useLocalStorage('owner_form_data_v2', {
         // Project & Location
         projectName: '',
+        roomNumber: '', // New Field
         locationPreference: '', // Using same key as Renter for compatibility in LocationSelection, but will map to 'zone'
 
         // Unit Details
@@ -32,13 +33,17 @@ export default function OwnerPage() {
         sizeSqm: '',
         floor: '',
         roomDetails: '', // Additional details
-        isAvailable: 'Available' as 'Available' | 'Unavailable', // New Field
+        // isAvailable: 'Available' as 'Available' | 'Unavailable', // Removed as per request (default Available)
 
         // Price & Policy
-        rentalPrice: '',
-        rentalPeriod: 'long',
+        // rentalPrice: '', // Deprecated in favor of split pricing
+        priceShort: '',
+        priceMiddle: '',
+        priceLong: '',
+        rentalPeriod: 'long', // Keeps track of selected terms to show relevant inputs
         isPetFriendly: false,
-        acceptedPets: [] as string[], // e.g., 'Cat', 'Dog'
+        acceptedPets: [] as string[], // e.g., 'Cat', 'Dog', 'Exotic', 'All'
+        facilities: [] as string[], // e.g., 'Internet', 'TV', 'Pool'
 
         // Photos
         images: [] as string[], // Base64 strings (Max 5)
@@ -90,6 +95,15 @@ export default function OwnerPage() {
     const handleNext = () => {
         const steps: Step[] = ['WELCOME', 'PROJECT_LOCATION', 'UNIT_TYPE', 'DETAILS', 'PETS_POLICIES', 'PHOTOS', 'CONTACT', 'SUCCESS'];
         const currentIndex = steps.indexOf(step);
+
+        // Validation Logic
+        if (step === 'PHOTOS') {
+            if (formData.images.length === 0) {
+                alert(t("owner.photos.required") || "Please upload at least one photo.");
+                return;
+            }
+        }
+
         if (currentIndex < steps.length - 1) {
             setStep(steps[currentIndex + 1]);
         }
@@ -264,6 +278,16 @@ export default function OwnerPage() {
                                         />
                                     </div>
                                     <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Room Number</label>
+                                        <Input
+                                            placeholder="e.g. 88/123"
+                                            name="roomNumber"
+                                            value={formData.roomNumber}
+                                            onChange={handleChange}
+                                            className="h-12 text-lg"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
                                         <label className="text-sm font-bold text-slate-700 uppercase tracking-wider">Zone (Select One)</label>
                                         <div className="max-h-[40vh] overflow-y-auto pr-2">
                                             <LocationSelection
@@ -277,7 +301,7 @@ export default function OwnerPage() {
                                 </CardContent>
                                 <CardFooter className="flex justify-between pt-4">
                                     <Button variant="ghost" onClick={handleBack}>{t("common.back")}</Button>
-                                    <Button onClick={handleNext} disabled={!formData.projectName || !formData.locationPreference}>
+                                    <Button onClick={handleNext} disabled={!formData.projectName || !formData.roomNumber || !formData.locationPreference}>
                                         {t("common.next")} <ChevronRight className="ml-2 w-4 h-4" />
                                     </Button>
                                 </CardFooter>
@@ -348,26 +372,7 @@ export default function OwnerPage() {
                                         </div>
                                     </div>
 
-                                    {/* Availability */}
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-700">Status</label>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <SelectionCard
-                                                selected={formData.isAvailable === 'Available'}
-                                                onClick={() => setFormData(p => ({ ...p, isAvailable: 'Available' }))}
-                                                icon="✅"
-                                                title="Available"
-                                                className="py-3"
-                                            />
-                                            <SelectionCard
-                                                selected={formData.isAvailable === 'Unavailable'}
-                                                onClick={() => setFormData(p => ({ ...p, isAvailable: 'Unavailable' }))}
-                                                icon="❌"
-                                                title="Unavailable"
-                                                className="py-3"
-                                            />
-                                        </div>
-                                    </div>
+
 
                                     {/* Description */}
                                     <div className="space-y-2">
@@ -377,8 +382,12 @@ export default function OwnerPage() {
                                             value={formData.roomDetails}
                                             onChange={handleChange}
                                             className="w-full min-h-[100px] p-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20 text-slate-800 placeholder:text-slate-400"
-                                            placeholder="Beautiful view, fully furnished, newly renovated..."
+                                            placeholder="Beautiful view, fully furnished, newly renovated... (Max 255 chars)"
+                                            maxLength={255}
                                         />
+                                        <div className="text-right text-xs text-slate-400">
+                                            {formData.roomDetails.length} / 255
+                                        </div>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="flex justify-between pt-4">
@@ -398,21 +407,7 @@ export default function OwnerPage() {
                                     <CardDescription>Rental price and pet policy</CardDescription>
                                 </CardHeader>
                                 <CardContent className="space-y-8">
-                                    {/* Price */}
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-slate-700">Rental Price (THB/Month)</label>
-                                        <div className="relative">
-                                            <span className="absolute left-4 top-3 text-slate-400">฿</span>
-                                            <Input
-                                                type="number"
-                                                name="rentalPrice"
-                                                value={formData.rentalPrice}
-                                                onChange={handleChange}
-                                                className="pl-8 text-lg font-bold text-[var(--primary)]"
-                                                placeholder="e.g. 25000"
-                                            />
-                                        </div>
-                                    </div>
+
 
                                     {/* Contract Terms Grouping */}
                                     <div className="space-y-3">
@@ -425,41 +420,100 @@ export default function OwnerPage() {
                                                 { id: 'short', label: 'Short Term', sub: '1-5 Months' },
                                                 { id: 'middle', label: 'Middle Term', sub: '6-11 Months' },
                                                 { id: 'long', label: 'Long Term', sub: '1 Year+' },
-                                            ].map((term) => {
-                                                const isSelected = formData.rentalPeriod.includes(term.id); // Reusing rentalPeriod as string of joined values or checking array if we change state type
-                                                // Actually, let's keep rentalPeriod but make it a string like "short,middle" or change to array in state.
-                                                // For simplicity in this replace block, I will assume formData.rentalPeriod is treated as a string that stores comma separated values, OR I will update the state definition in a separate block if needed.
-                                                // Given the constraint of single contiguous block, I should check if I can update the state definition too. I can't.
-                                                // So I will implement the UI here and handle the state logic by treating `rentalPeriod` as the storage field (comma separated).
-
-                                                return (
-                                                    <SelectionCard
-                                                        key={term.id}
-                                                        selected={formData.rentalPeriod.includes(term.id)}
-                                                        onClick={() => {
-                                                            let current = formData.rentalPeriod ? formData.rentalPeriod.split(',').filter(Boolean) : [];
-                                                            if (current.includes(term.id)) {
-                                                                current = current.filter(c => c !== term.id);
-                                                            } else {
-                                                                current.push(term.id);
-                                                            }
-                                                            setFormData(p => ({ ...p, rentalPeriod: current.join(',') }));
-                                                        }}
-                                                        icon={term.id === 'short' ? '⚡' : term.id === 'middle' ? '🗓️' : '⏳'}
-                                                        title={`${term.label} (${term.sub})`}
-                                                        className="py-3"
-                                                    />
-                                                );
-                                            })}
+                                            ].map((term) => (
+                                                <SelectionCard
+                                                    key={term.id}
+                                                    selected={formData.rentalPeriod.includes(term.id)}
+                                                    onClick={() => {
+                                                        let current = formData.rentalPeriod ? formData.rentalPeriod.split(',').filter(Boolean) : [];
+                                                        if (current.includes(term.id)) {
+                                                            current = current.filter(c => c !== term.id);
+                                                        } else {
+                                                            current.push(term.id);
+                                                        }
+                                                        setFormData(p => ({ ...p, rentalPeriod: current.join(',') }));
+                                                    }}
+                                                    icon={term.id === 'short' ? '⚡' : term.id === 'middle' ? '🗓️' : '⏳'}
+                                                    title={`${term.label} (${term.sub})`}
+                                                    className="py-3"
+                                                />
+                                            ))}
                                         </div>
-                                        {/* Helper Text for "All" */}
-                                        <div className="flex justify-end">
-                                            <button
-                                                onClick={() => setFormData(p => ({ ...p, rentalPeriod: 'short,middle,long' }))}
-                                                className="text-xs text-[var(--primary)] font-bold underline decoration-dotted hover:text-[var(--primary)]/80"
-                                            >
-                                                Select All
-                                            </button>
+                                    </div>
+
+                                    {/* Dynamic Price Inputs */}
+                                    <div className="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                                        {(formData.rentalPeriod.includes('short') || formData.rentalPeriod.includes('middle') || formData.rentalPeriod.includes('long')) ? (
+                                            <>
+                                                <div className="text-sm font-bold text-slate-700">Set Prices (THB/Month)</div>
+                                                {formData.rentalPeriod.includes('short') && (
+                                                    <div className="relative">
+                                                        <span className="absolute left-4 top-3 text-slate-400">⚡</span>
+                                                        <Input
+                                                            type="number"
+                                                            name="priceShort"
+                                                            value={formData.priceShort}
+                                                            onChange={handleChange}
+                                                            className="pl-10"
+                                                            placeholder="Price for 1-5 Months"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {formData.rentalPeriod.includes('middle') && (
+                                                    <div className="relative">
+                                                        <span className="absolute left-4 top-3 text-slate-400">🗓️</span>
+                                                        <Input
+                                                            type="number"
+                                                            name="priceMiddle"
+                                                            value={formData.priceMiddle}
+                                                            onChange={handleChange}
+                                                            className="pl-10"
+                                                            placeholder="Price for 6-11 Months"
+                                                        />
+                                                    </div>
+                                                )}
+                                                {formData.rentalPeriod.includes('long') && (
+                                                    <div className="relative">
+                                                        <span className="absolute left-4 top-3 text-slate-400">⏳</span>
+                                                        <Input
+                                                            type="number"
+                                                            name="priceLong"
+                                                            value={formData.priceLong}
+                                                            onChange={handleChange}
+                                                            className="pl-10"
+                                                            placeholder="Price for 1 Year+"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div className="text-center text-slate-400 text-sm py-2">Select a contract term above to set prices</div>
+                                        )}
+                                    </div>
+
+                                    {/* Facilities */}
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-bold text-slate-700 flex items-center">
+                                            <Building className="w-4 h-4 mr-2" /> Facilities
+                                        </label>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                            {['Internet', 'TV', 'Pool', 'Gym', 'Workspace', 'Kitchen'].map((fac) => (
+                                                <SelectionCard
+                                                    key={fac}
+                                                    selected={formData.facilities.includes(fac)}
+                                                    onClick={() => {
+                                                        const current = formData.facilities || [];
+                                                        if (current.includes(fac)) {
+                                                            setFormData(p => ({ ...p, facilities: current.filter(f => f !== fac) }));
+                                                        } else {
+                                                            setFormData(p => ({ ...p, facilities: [...current, fac] }));
+                                                        }
+                                                    }}
+                                                    icon="✨"
+                                                    title={fac}
+                                                    className="py-2 px-3 text-sm"
+                                                />
+                                            ))}
                                         </div>
                                     </div>
 
@@ -471,7 +525,7 @@ export default function OwnerPage() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <SelectionCard
                                                 selected={!formData.isPetFriendly}
-                                                onClick={() => setFormData(p => ({ ...p, isPetFriendly: false }))}
+                                                onClick={() => setFormData(p => ({ ...p, isPetFriendly: false, acceptedPets: [] }))}
                                                 icon="🚫"
                                                 title="No Pets"
                                             />
@@ -482,11 +536,68 @@ export default function OwnerPage() {
                                                 title="Pet Friendly"
                                             />
                                         </div>
+
+                                        {/* Pet Types Selection */}
+                                        <AnimatePresence>
+                                            {formData.isPetFriendly && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, height: 0 }}
+                                                    animate={{ opacity: 1, height: 'auto' }}
+                                                    exit={{ opacity: 0, height: 0 }}
+                                                    className="pl-2 pt-2"
+                                                >
+                                                    <p className="text-xs text-slate-400 mb-2 font-medium uppercase tracking-wider">Accepted Pets</p>
+                                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                                        {['Dog', 'Cat', 'Exotic', 'All'].map((pet) => (
+                                                            <button
+                                                                key={pet}
+                                                                onClick={() => {
+                                                                    const current = formData.acceptedPets || [];
+                                                                    if (pet === 'All') {
+                                                                        // If All is clicked, toggle it. If on, clear others? Or just set All. 
+                                                                        // Let's say All implies everything.
+                                                                        if (current.includes('All')) {
+                                                                            setFormData(p => ({ ...p, acceptedPets: [] }));
+                                                                        } else {
+                                                                            setFormData(p => ({ ...p, acceptedPets: ['Dog', 'Cat', 'Exotic', 'All'] }));
+                                                                        }
+                                                                    } else {
+                                                                        // Normal toggle
+                                                                        let newPets: string[] = [...current];
+                                                                        if (newPets.includes(pet)) {
+                                                                            newPets = newPets.filter(p => p !== pet);
+                                                                            // If unchecking something, remove 'All' if it exists
+                                                                            newPets = newPets.filter(p => p !== 'All');
+                                                                        } else {
+                                                                            newPets.push(pet);
+                                                                            // If Dog, Cat, and Exotic are all selected, auto-select All? Optional.
+                                                                        }
+                                                                        setFormData(p => ({ ...p, acceptedPets: newPets }));
+                                                                    }
+                                                                }}
+                                                                className={`
+                                                                    py-2 px-3 rounded-lg text-sm font-medium border transition-all
+                                                                    ${formData.acceptedPets.includes(pet)
+                                                                        ? 'bg-[var(--accent)] text-white border-[var(--accent)] shadow-md'
+                                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-[var(--accent)]/50'}
+                                                                `}
+                                                            >
+                                                                {pet}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="flex justify-between pt-4">
                                     <Button variant="ghost" onClick={handleBack}>{t("common.back")}</Button>
-                                    <Button onClick={handleNext} disabled={!formData.rentalPrice}>
+                                    <Button onClick={handleNext} disabled={
+                                        (formData.rentalPeriod.includes('short') && !formData.priceShort) ||
+                                        (formData.rentalPeriod.includes('middle') && !formData.priceMiddle) ||
+                                        (formData.rentalPeriod.includes('long') && !formData.priceLong)
+                                    }>
                                         {t("common.next")} <ChevronRight className="ml-2 w-4 h-4" />
                                     </Button>
                                 </CardFooter>

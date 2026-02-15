@@ -88,7 +88,7 @@ export const en = {
             name: "Your Name",
             phone: "Phone Number / WhatsApp",
             lineId: "LINE ID",
-            email: "Email (Optional)",
+            email: "Email",
             almostDone: "Almost done!",
             trust: {
                 encrypted: "Data Encrypted & Secure",

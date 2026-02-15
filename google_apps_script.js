@@ -58,7 +58,7 @@ function handleRenterSubmission(ss, data, timestamp, lineName, lineId) {
     if (!sheet) {
         sheet = ss.insertSheet("Renter_Data");
         sheet.appendRow([
-            "Timestamp", "Line User ID", "Display Name", "Full Name", "Phone", "Email",
+            "Timestamp", "Line User ID", "Display Name", "Full Name", "Contact Method", "Phone", "Email",
             "Zones", "Budget Min", "Budget Max", "Pet Friendly?", "Pet Details",
             "Unit Types", "Contract (Months)", "Move In Date", "Source"
         ]);
@@ -75,12 +75,17 @@ function handleRenterSubmission(ss, data, timestamp, lineName, lineId) {
     if (prefs.is_pet_friendly === true) petInfo = "Yes (" + petInfo + ")";
     else if (prefs.is_pet_friendly === false) petInfo = "No";
 
+    // Ensure phone starts with + if it has content
+    var rawPhone = data.phone_number || data.phoneNumber || "";
+    var formattedPhone = rawPhone ? ("'+" + rawPhone.replace(/^\+/, '')) : "";
+
     var rowData = [
         timestamp,
         lineId,
         sanitizeInput(lineName),
         sanitizeInput(data.full_name || data.fullName || ""),
-        "'" + sanitizeInput(data.phone_number || data.phoneNumber || ""),
+        sanitizeInput(data.contactMethod || ""), // Added Contact Method
+        formattedPhone,
         sanitizeInput(data.email || ""),
         sanitizeInput(location),
         budgetMin,
@@ -103,11 +108,18 @@ function handleOwnerSubmission(ss, data, timestamp, lineName, lineId) {
         // Header with New Columns (Up to 5 images + Status)
         sheet.appendRow([
             "Timestamp", "LINE Name", "LINE ID", "Owner Name", "Phone", "LINE ID (Manual)",
-            "Project Name", "Zone", "Unit Type", "Size (sqm)", "Floor",
-            "Description", "Price", "Contract", "Pet Policy", "Status",
+            "Project Name", "Room Number", "Zone", "Unit Type", "Size (sqm)", "Floor",
+            "Description", "Price (Short)", "Price (Middle)", "Price (Long)", "Contract Types",
+            "Facilities", "Pet Policy", "Status",
             "Image 1", "Image 2", "Image 3", "Image 4", "Image 5"
         ]);
     }
+
+    // Determine Folder for Images
+    // Sanitize and create a safe folder name
+    var safeProject = sanitizeInput(data.projectName || "UnknownProject").toString().replace(/[\/\\:*?"<>|]/g, '').trim();
+    var safeRoom = sanitizeInput(data.roomNumber || "UnknownRoom").toString().replace(/[\/\\:*?"<>|]/g, '').trim();
+    var specificFolderName = safeProject + "_" + safeRoom;
 
     // Handle Images (Max 5)
     var imageUrls = ["", "", "", "", ""];
@@ -116,7 +128,7 @@ function handleOwnerSubmission(ss, data, timestamp, lineName, lineId) {
             if (base64 && base64.length > 0 && index < 5) {
                 try {
                     var fileName = "Owner_" + (lineName.replace(/\s/g, '_') || "User") + "_" + timestamp.getTime() + "_" + (index + 1) + ".jpg";
-                    var url = saveImageToDrive(base64, fileName);
+                    var url = saveImageToSubfolder(base64, fileName, specificFolderName);
                     imageUrls[index] = url;
                 } catch (e) {
                     imageUrls[index] = "Error: " + e.toString();
@@ -134,6 +146,9 @@ function handleOwnerSubmission(ss, data, timestamp, lineName, lineId) {
         }
     }
 
+    // Facilities
+    var facilities = (data.facilities || []).join(", ");
+
     var rowData = [
         timestamp,
         sanitizeInput(lineName),
@@ -142,15 +157,19 @@ function handleOwnerSubmission(ss, data, timestamp, lineName, lineId) {
         "'" + sanitizeInput(data.ownerPhone || ""),
         sanitizeInput(data.ownerLineId || ""),
         sanitizeInput(data.projectName || ""),
-        sanitizeInput(data.zone || data.locationPreference || ""), // Mapped zone
+        sanitizeInput(data.roomNumber || ""),
+        sanitizeInput(data.zone || data.locationPreference || ""),
         sanitizeInput(data.unitType || ""),
         sanitizeInput(data.sizeSqm || ""),
         sanitizeInput(data.floor || ""),
         sanitizeInput(data.roomDetails || ""),
-        sanitizeInput(data.rentalPrice || ""),
-        sanitizeInput(data.rentalPeriod || ""),
+        sanitizeInput(data.priceShort || ""),   // Split Pricing
+        sanitizeInput(data.priceMiddle || ""),
+        sanitizeInput(data.priceLong || ""),
+        sanitizeInput(data.rentalPeriod || ""), // Kept as Contract Types summary
+        sanitizeInput(facilities),              // New Facilities
         sanitizeInput(petPolicy),
-        sanitizeInput(data.isAvailable || "Available"), // New Status Field
+        sanitizeInput("Available"),             // Hardcoded Available
         imageUrls[0],
         imageUrls[1],
         imageUrls[2],
@@ -162,17 +181,29 @@ function handleOwnerSubmission(ss, data, timestamp, lineName, lineId) {
 }
 
 /**
- * Saves Base64 Image string to Google Drive in "Nebles_Room_Images" folder
+ * Saves Base64 Image string to Google Drive in "Nebles_Room_Images/Subfolder"
  * Returns public View URL
  */
-function saveImageToDrive(base64Data, fileName) {
-    const FOLDER_NAME = "Nebles_Room_Images";
-    const folders = DriveApp.getFoldersByName(FOLDER_NAME);
-    let folder;
-    if (folders.hasNext()) {
-        folder = folders.next();
+function saveImageToSubfolder(base64Data, fileName, subfolderName) {
+    const ROOT_FOLDER_NAME = "Nebles_Room_Images";
+
+    // 1. Get or Create Root Folder
+    var rootFolders = DriveApp.getFoldersByName(ROOT_FOLDER_NAME);
+    var rootFolder;
+    if (rootFolders.hasNext()) {
+        rootFolder = rootFolders.next();
     } else {
-        folder = DriveApp.createFolder(FOLDER_NAME);
+        rootFolder = DriveApp.createFolder(ROOT_FOLDER_NAME);
+    }
+
+    // 2. Get or Create Subfolder
+    var subFolders = rootFolder.getFoldersByName(subfolderName);
+    var targetFolder;
+    if (subFolders.hasNext()) {
+        targetFolder = subFolders.next();
+    } else {
+        targetFolder = rootFolder.createFolder(subfolderName);
+        targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); // Ensure folder is accessible if needed, or just files.
     }
 
     // Expect format: "data:image/jpeg;base64,/9j/4AAQ..."
@@ -194,7 +225,7 @@ function saveImageToDrive(base64Data, fileName) {
     var bytes = Utilities.base64Decode(dataPart);
     var blob = Utilities.newBlob(bytes, contentType, fileName);
 
-    var file = folder.createFile(blob);
+    var file = targetFolder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
 
     // Return direct view URL
